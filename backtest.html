@@ -1,0 +1,2065 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitleTag">전략 백테스팅 플랫폼</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel2: #1e2230;
+    --border: #2b2f3d;
+    --text: #e6e8ef;
+    --text-dim: #8b90a3;
+    --accent: #4f8cff;
+    --green: #2ecc71;
+    --red: #ff5c5c;
+    --amber: #f5a623;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--text-dim); font-size: 13px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 60px);
+  }
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 60px);
+  }
+  .main {
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  label { font-size: 13px; color: var(--text-dim); display: block; margin-bottom: 4px; }
+  select, input[type=number], input[type=text], input[type=date] {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .row { display: flex; gap: 8px; }
+  .row > div { flex: 1; }
+
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { opacity: 0.9; }
+  button.secondary {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.danger { background: var(--red); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.small { padding: 5px 10px; font-size: 12px; }
+  button.full { width: 100%; }
+
+  #dataStatus { font-size: 12px; color: var(--text-dim); margin-top: -6px; margin-bottom: 12px; }
+
+  .strategy-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .strategy-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .strategy-head input[type=text] {
+    margin: 0;
+    background: transparent;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 2px 4px;
+    width: auto;
+    flex: 1;
+  }
+  .swatch {
+    width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; flex-shrink: 0;
+  }
+  textarea.code {
+    width: 100%;
+    min-height: 220px;
+    background: #0b0d13;
+    color: #d4d8e6;
+    border: none;
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    font-size: 12.5px;
+    padding: 12px;
+    resize: vertical;
+    tab-size: 2;
+    line-height: 1.6;
+  }
+  .strategy-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    align-items: center;
+    justify-content: space-between;
+  }
+  .status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .status-idle { background: #2b2f3d; color: var(--text-dim); }
+  .status-running { background: #2a3d6b; color: #8bb4ff; }
+  .status-done { background: #1c3b2a; color: var(--green); }
+  .status-error { background: #4a1f1f; color: var(--red); }
+  .status-stopped { background: #4a3a1f; color: var(--amber); }
+
+  #chartWrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  #priceChart { width: 100%; height: 260px; }
+  #equityChart { width: 100%; height: 320px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-dim); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+
+  #instantExitBar {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--red);
+    color: white;
+    padding: 10px 24px;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  #instantExitBar.show { display: flex; }
+  #instantExitBar button {
+    background: white;
+    color: var(--red);
+  }
+
+  .helper {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .helper code {
+    background: var(--panel2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  details summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 12px; }
+  .legend span { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ===== UI polish additions ===== */
+  html { scroll-behavior: smooth; }
+  body { font-feature-settings: "tnum" 1; }
+
+  header {
+    background: linear-gradient(180deg, rgba(79,140,255,0.06), transparent 70%);
+    backdrop-filter: blur(6px);
+    position: sticky; top: 0; z-index: 40;
+  }
+  header h1 { letter-spacing: -0.01em; }
+
+  .lang-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .lang-toggle button {
+    background: transparent;
+    color: var(--text-dim);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .lang-toggle button:hover { opacity: 1; color: var(--text); }
+  .lang-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 6px rgba(79,140,255,0.45);
+  }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+
+  .panel {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+    transition: border-color 0.15s ease;
+  }
+  .panel:hover { border-color: #3a3f52; }
+
+  select, input[type=number], input[type=text], input[type=date] {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  select:focus, input[type=number]:focus, input[type=text]:focus, input[type=date]:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.18);
+  }
+  select:hover, input[type=number]:hover, input[type=text]:hover, input[type=date]:hover {
+    border-color: #3a3f52;
+  }
+
+  button {
+    transition: opacity 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+  }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:not(.secondary):not(.danger):not(:disabled):hover {
+    box-shadow: 0 2px 10px rgba(79,140,255,0.35);
+  }
+  button.secondary:hover:not(:disabled) { background: #262b3b; border-color: #3a3f52; }
+
+  .strategy-card { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .strategy-card:hover { border-color: #3a3f52; box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+  .strategy-head input[type=text]:focus { outline: none; background: var(--panel); border-radius: 4px; }
+
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; }
+  .status-badge::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block;
+  }
+  .status-running .status-badge::before,
+  .status-running::before { animation: pulse 1.2s ease-in-out infinite; }
+  .status-running::before { content: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  table tbody tr { transition: background 0.12s ease; }
+  table tbody tr:hover { background: rgba(255,255,255,0.025); }
+
+  #instantExitBar { box-shadow: 0 2px 10px rgba(0,0,0,0.35); }
+  #instantExitBar #exitMsg::before { content: "⏳ "; }
+
+  ::selection { background: rgba(79,140,255,0.35); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: none; }
+    .main { max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="instantExitBar">
+  <span id="exitMsg" data-i18n="exitMsgIdle">전략 실행 중...</span>
+  <button id="instantExitBtn" data-i18n="instantExitBtn">⛔ Instant Exit (즉시 중단)</button>
+</div>
+
+<header>
+  <div>
+    <h1 data-i18n="appTitle">전략 백테스팅 플랫폼</h1>
+    <div class="sub" data-i18n="appSubtitle">1단계: 데이터 로드 + 자유 코드 전략 실행 + 다중 비교</div>
+  </div>
+  <div class="header-right">
+    <div class="sub" id="engineStatus" data-i18n="engineIdle">엔진 대기 중</div>
+    <div class="lang-toggle">
+      <button id="langKoBtn" data-lang="ko">한국어</button>
+      <button id="langEnBtn" data-lang="en">EN</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+
+    <div class="panel">
+      <h2 data-i18n="panel1Title">1. 데이터</h2>
+      <label data-i18n="dataSourceLabel">데이터 소스</label>
+      <select id="dataSource">
+        <option value="sample" data-i18n="dataSourceSample">샘플 데이터 (내장, 즉시 사용 가능)</option>
+        <option value="csv" data-i18n="dataSourceCsv">CSV 업로드</option>
+      </select>
+
+      <div id="sampleControls">
+        <label data-i18n="sampleTickerLabel">샘플 종목</label>
+        <select id="sampleTicker">
+          <option value="TECH_BULL" data-i18n="tickerTechBull">TECH_BULL (상승장 성장주 시뮬)</option>
+          <option value="VOLATILE" data-i18n="tickerVolatile">VOLATILE (고변동성 종목)</option>
+          <option value="SIDEWAYS" data-i18n="tickerSideways">SIDEWAYS (박스권 횡보)</option>
+          <option value="BEAR" data-i18n="tickerBear">BEAR (하락장 시뮬)</option>
+        </select>
+        <label data-i18n="sampleDaysLabel">기간 (거래일 수)</label>
+        <input type="number" id="sampleDays" value="500" min="60" max="2000">
+      </div>
+
+      <div id="csvControls" style="display:none;">
+        <label data-i18n="csvFileLabel">CSV 파일 (date,open,high,low,close,volume)</label>
+        <input type="file" id="csvFile" accept=".csv">
+      </div>
+
+      <button class="full" id="loadDataBtn" data-i18n="loadDataBtn">데이터 불러오기</button>
+      <div id="dataStatus" data-i18n="dataStatusInitial">아직 데이터가 로드되지 않았습니다.</div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panel2Title">2. 시장 고증 설정</h2>
+      <label data-i18n="marketPresetLabel">시장 프리셋</label>
+      <select id="marketPreset">
+        <option value="KR" data-i18n="presetKR">한국식 (KRW, 거래세 포함)</option>
+        <option value="US" data-i18n="presetUS">미국식 (USD, 환율 변환)</option>
+        <option value="CUSTOM" data-i18n="presetCustom">Custom (직접 입력)</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label data-i18n="buyFeeLabel">매수 수수료 (%)</label>
+          <input type="number" id="buyFeePct" value="0.015" step="0.001">
+        </div>
+        <div>
+          <label data-i18n="sellFeeLabel">매도 수수료 (%)</label>
+          <input type="number" id="sellFeePct" value="0.015" step="0.001">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label data-i18n="taxLabel">거래세 / 세금 (%)</label>
+          <input type="number" id="taxPct" value="0.18" step="0.01">
+        </div>
+        <div>
+          <label data-i18n="slippageLabel">슬리피지 (%)</label>
+          <input type="number" id="slippagePct" value="0.05" step="0.01">
+        </div>
+      </div>
+
+      <div id="fxControls" style="display:none;">
+        <label data-i18n="baseCurrencyLabel">기준 통화</label>
+        <select id="baseCurrency">
+          <option value="KRW" data-i18n="currencyKRW">KRW (원화)</option>
+          <option value="USD" data-i18n="currencyUSD">USD (달러)</option>
+        </select>
+        <label data-i18n="fxRateLabel">적용 환율 (USD/KRW)</label>
+        <input type="number" id="fxRate" value="1380" step="1">
+        <label style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+          <input type="checkbox" id="fxHedge" style="width:auto; margin:0;"> <span data-i18n="fxHedgeLabel">환헤지 적용 (환율 변동 미반영)</span>
+        </label>
+      </div>
+      <div class="helper" id="marketHelper">
+        한국 코스피/코스닥 기준: 매수·매도 수수료 각 0.015%, 매도 시 거래세 0.18%. 환율 영향 없음(원화 기준 거래).
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panel3Title">3. 백테스트 설정</h2>
+      <label data-i18n="initialCapitalLabel">초기 자본 (모든 전략 동일 조건)</label>
+      <input type="number" id="initialCapital" value="10000000" step="100000">
+      <label data-i18n="timeoutLabel">캔들당 실행 타임아웃 (ms)</label>
+      <input type="number" id="timeoutMs" value="50" min="5" max="1000">
+      <button class="full" id="runAllBtn" disabled data-i18n="runAllBtn">▶ 모든 전략 동시 실행</button>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panel4Title">4. 뉴스 / 시장상황 레이어</h2>
+      <label data-i18n="newsModeLabel">모드</label>
+      <select id="newsMode">
+        <option value="none" data-i18n="newsModeNone">사용 안 함 (전부 NONE)</option>
+        <option value="manual" data-i18n="newsModeManual">수동 태깅 (BOOM~FAILURE)</option>
+        <option value="ai" data-i18n="newsModeAi">AI 분석 (txt 업로드 + API 필요)</option>
+      </select>
+
+      <div id="newsManualControls" style="display:none;">
+        <div class="helper" data-i18n="newsManualHelper">
+          날짜를 선택하고 단계를 지정하세요. 지정하지 않은 날짜는 자동으로 NONE 처리됩니다.
+        </div>
+        <div class="row">
+          <div>
+            <label data-i18n="newsDateLabel">날짜</label>
+            <input type="date" id="newsTagDate">
+          </div>
+          <div>
+            <label data-i18n="newsStageLabel">단계</label>
+            <select id="newsTagStage">
+              <option value="BOOM">Economic Boom</option>
+              <option value="LIGHT_BOOM">Light Economic Boom</option>
+              <option value="NONE">No News</option>
+              <option value="LIGHT_DOWNTURN">Light Economic Downturn</option>
+              <option value="DOWNTURN">Economic Downturn</option>
+              <option value="FAILURE">Economic Failure</option>
+            </select>
+          </div>
+        </div>
+        <button class="full secondary" id="addNewsTagBtn" data-i18n="addNewsTagBtn">태그 추가/수정</button>
+        <div id="newsTagList" style="margin-top:10px; max-height:160px; overflow-y:auto;"></div>
+      </div>
+
+      <div id="newsAiControls" style="display:none;">
+        <div class="helper" data-i18n-html="newsAiHelper">
+          날짜별 뉴스 txt를 업로드하면 AI API가 각 날짜를 분석해 단계 및 감정 점수를 자동 산출합니다.
+          <b>AI API 키 설정이 필수입니다</b> (아래 5번 패널).
+        </div>
+        <label data-i18n="newsTxtLabel">뉴스 txt 업로드 (형식: 각 줄 "YYYY-MM-DD: 뉴스 본문")</label>
+        <input type="file" id="newsTxtFile" accept=".txt">
+        <button class="full secondary" id="analyzeNewsBtn" disabled data-i18n="analyzeNewsBtn">AI로 전체 분석 실행</button>
+        <div id="newsAiStatus" class="helper"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panel5Title">5. AI API 연동 (선택)</h2>
+      <label data-i18n="providerLabel">제공자</label>
+      <select id="aiProvider">
+        <option value="openrouter">OpenRouter</option>
+        <option value="custom">Custom Endpoint</option>
+      </select>
+      <label data-i18n="endpointLabel">API 엔드포인트 URL</label>
+      <input type="text" id="aiEndpoint" placeholder="https://openrouter.ai/api/v1/chat/completions" value="https://openrouter.ai/api/v1/chat/completions">
+      <label data-i18n="modelLabel">모델명</label>
+      <input type="text" id="aiModel" data-i18n-placeholder="modelPlaceholder" placeholder="예: anthropic/claude-sonnet-4.5" value="anthropic/claude-sonnet-4.5">
+      <label data-i18n="apiKeyLabel">API 키</label>
+      <input type="text" id="aiApiKey" data-i18n-placeholder="apiKeyPlaceholder" placeholder="sk-or-... (이 브라우저에만 저장됩니다)">
+      <button class="full secondary" id="saveAiKeyBtn" data-i18n="saveKeyBtn">저장 (로컬 브라우저에만)</button>
+      <div class="helper" id="aiKeyStatus" data-i18n="aiKeyStatusInitial">저장된 키가 없습니다. 키는 서버로 전송되지 않고 이 브라우저의 localStorage에만 저장되며, 실제 API 호출은 사용자의 브라우저에서 직접 발생합니다.</div>
+
+      <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
+        <label data-i18n="vibeLabel">바이브코딩 — 자연어로 전략 요청</label>
+        <textarea id="vibePrompt" class="code" style="min-height:80px;" data-i18n-placeholder="vibePlaceholder" placeholder="예: 20일 이동평균선 위에 있을 때만 매수하고, RSI가 70 넘으면 매도하는 전략 짜줘"></textarea>
+        <button class="full" id="vibeCodeBtn" style="margin-top:8px;" data-i18n="vibeBtn">AI로 전략 코드 생성</button>
+        <div id="vibeStatus" class="helper"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="panel6Title">6. 전략 목록</h2>
+      <div id="strategyList"></div>
+      <button class="full secondary" id="addStrategyBtn" data-i18n="addStrategyBtn">+ 새 전략 추가</button>
+      <div class="helper">
+        <details>
+          <summary data-i18n="guideSummary">전략 함수 작성 가이드 보기</summary>
+          <span data-i18n-html="guideBody">함수 시그니처: <code>function strategy(context)</code><br><br>
+          <b>context 입력:</b><br>
+          • <code>context.current</code> — 현재 캔들 {date, open, high, low, close, volume}<br>
+          • <code>context.history</code> — 지금까지의 전체 과거 캔들 배열 (지표는 직접 계산)<br>
+          • <code>context.index</code> — 현재 캔들 인덱스<br>
+          • <code>context.portfolio</code> — {cash, shares, avgPrice, totalValue}<br>
+          • <code>context.news</code> — {mode, stage, sentiment, raw}<br>
+          &nbsp;&nbsp;stage: "BOOM" | "LIGHT_BOOM" | "NONE" | "LIGHT_DOWNTURN" | "DOWNTURN" | "FAILURE"<br><br>
+          <b>반환 (출력) 형식:</b><br>
+          • <code>{ action: "BUY", amount: 10 }</code><br>
+          • <code>{ action: "SELL", amount: "ALL" }</code><br>
+          • <code>{ action: "HOLD" }</code><br><br>
+          현금/보유 부족 등 유효하지 않은 주문은 엔진이 자동으로 HOLD 처리합니다.</span>
+        </details>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="main">
+    <div id="chartWrap">
+      <h2 style="font-size:13px; text-transform:uppercase; color:var(--text-dim); margin:0 0 12px;" data-i18n="priceChartTitle">가격 차트</h2>
+      <canvas id="priceChart"></canvas>
+      <div id="dataMeta" class="helper"></div>
+    </div>
+
+    <div id="chartWrap2" class="panel">
+      <h2 data-i18n="equityChartTitle">전략 비교 — 자산 곡선</h2>
+      <canvas id="equityChart"></canvas>
+      <div class="legend" id="equityLegend"></div>
+    </div>
+
+    <div class="panel" id="timelinePanel" style="display:none;">
+      <h2 data-i18n="timelineTitle">View Timeline — 시간에 따른 투자 전개</h2>
+      <label data-i18n="timelineStrategyLabel">기준 전략</label>
+      <select id="timelineStrategySelect"></select>
+
+      <div id="timelineChartWrap" style="position:relative; margin-top:10px;">
+        <canvas id="timelineChart" style="width:100%; height:280px;"></canvas>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+        <button class="small secondary" id="timelinePlayBtn" data-i18n="timelinePlayBtn">▶ 재생</button>
+        <input type="range" id="timelineSlider" min="0" max="0" value="0" style="flex:1;">
+        <span id="timelineDateLabel" style="font-size:12px; color:var(--text-dim); min-width:90px; text-align:right;">-</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px;">
+        <div class="panel" style="margin:0; padding:10px;">
+          <div class="helper" style="margin:0;" data-i18n="tlCurrentValueLabel">현재 자산</div>
+          <div id="tlCurrentValue" style="font-size:18px; font-weight:700;">-</div>
+        </div>
+        <div class="panel" style="margin:0; padding:10px;">
+          <div class="helper" style="margin:0;" data-i18n="tlCashLabel">보유 현금</div>
+          <div id="tlCash" style="font-size:18px; font-weight:700;">-</div>
+        </div>
+        <div class="panel" style="margin:0; padding:10px;">
+          <div class="helper" style="margin:0;" data-i18n="tlHoldingsLabel">보유 주식 (평가액)</div>
+          <div id="tlHoldings" style="font-size:18px; font-weight:700;">-</div>
+        </div>
+        <div class="panel" style="margin:0; padding:10px;">
+          <div class="helper" style="margin:0;" data-i18n="tlPnlLabel">누적 손익</div>
+          <div id="tlPnl" style="font-size:18px; font-weight:700;">-</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="helper" style="margin-bottom:6px;" data-i18n="tlTradesLabel">이 시점까지의 거래 내역</div>
+        <div style="overflow-x:auto; max-height:220px; overflow-y:auto;">
+          <table>
+            <thead>
+              <tr><th data-i18n="thDate">날짜</th><th data-i18n="thType">구분</th><th data-i18n="thQty">수량</th><th data-i18n="thPrice">체결가</th><th data-i18n="thPnl">손익</th></tr>
+            </thead>
+            <tbody id="timelineTradeBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="resultsTitle">결과 비교표</h2>
+      <div style="overflow-x:auto;">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th data-i18n="thStrategy">전략</th>
+              <th data-i18n="thStatus">상태</th>
+              <th data-i18n="thFinalValue">최종 자산</th>
+              <th data-i18n="thReturn">수익률</th>
+              <th data-i18n="thMdd">MDD</th>
+              <th data-i18n="thTradeCount">거래 횟수</th>
+              <th data-i18n="thWinRate">승률</th>
+              <th data-i18n="thFees">총 수수료/세금</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:24px;" data-i18n="noStrategiesRun">아직 실행된 전략이 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================================================
+   상태
+=========================================================== */
+/* ===========================================================
+   i18n (한국어 / English)
+=========================================================== */
+const I18N = {
+  ko: {
+    pageTitle: "전략 백테스팅 플랫폼",
+    exitMsgIdle: "전략 실행 중...",
+    instantExitBtn: "⛔ Instant Exit (즉시 중단)",
+    appTitle: "전략 백테스팅 플랫폼",
+    appSubtitle: "1단계: 데이터 로드 + 자유 코드 전략 실행 + 다중 비교",
+    engineIdle: "엔진 대기 중",
+
+    panel1Title: "1. 데이터",
+    dataSourceLabel: "데이터 소스",
+    dataSourceSample: "샘플 데이터 (내장, 즉시 사용 가능)",
+    dataSourceCsv: "CSV 업로드",
+    sampleTickerLabel: "샘플 종목",
+    tickerTechBull: "TECH_BULL (상승장 성장주 시뮬)",
+    tickerVolatile: "VOLATILE (고변동성 종목)",
+    tickerSideways: "SIDEWAYS (박스권 횡보)",
+    tickerBear: "BEAR (하락장 시뮬)",
+    sampleDaysLabel: "기간 (거래일 수)",
+    csvFileLabel: "CSV 파일 (date,open,high,low,close,volume)",
+    loadDataBtn: "데이터 불러오기",
+    dataStatusInitial: "아직 데이터가 로드되지 않았습니다.",
+
+    panel2Title: "2. 시장 고증 설정",
+    marketPresetLabel: "시장 프리셋",
+    presetKR: "한국식 (KRW, 거래세 포함)",
+    presetUS: "미국식 (USD, 환율 변환)",
+    presetCustom: "Custom (직접 입력)",
+    buyFeeLabel: "매수 수수료 (%)",
+    sellFeeLabel: "매도 수수료 (%)",
+    taxLabel: "거래세 / 세금 (%)",
+    slippageLabel: "슬리피지 (%)",
+    baseCurrencyLabel: "기준 통화",
+    currencyKRW: "KRW (원화)",
+    currencyUSD: "USD (달러)",
+    fxRateLabel: "적용 환율 (USD/KRW)",
+    fxHedgeLabel: "환헤지 적용 (환율 변동 미반영)",
+    marketHelperKR: "한국 코스피/코스닥 기준: 매수·매도 수수료 각 0.015%, 매도 시 거래세 0.18%. 환율 영향 없음(원화 기준 거래).",
+    marketHelperUS: "미국 주요 증권사 기준: 대부분 매매 수수료 없음(0%), SEC 수수료는 미미하여 생략. 원화 계좌 기준이면 환전 시 환율이 최종 원화 수익률에 영향을 줍니다.",
+    marketHelperCustom: "모든 수수료/세금/환율 값을 직접 지정합니다.",
+
+    panel3Title: "3. 백테스트 설정",
+    initialCapitalLabel: "초기 자본 (모든 전략 동일 조건)",
+    timeoutLabel: "캔들당 실행 타임아웃 (ms)",
+    runAllBtn: "▶ 모든 전략 동시 실행",
+
+    panel4Title: "4. 뉴스 / 시장상황 레이어",
+    newsModeLabel: "모드",
+    newsModeNone: "사용 안 함 (전부 NONE)",
+    newsModeManual: "수동 태깅 (BOOM~FAILURE)",
+    newsModeAi: "AI 분석 (txt 업로드 + API 필요)",
+    newsManualHelper: "날짜를 선택하고 단계를 지정하세요. 지정하지 않은 날짜는 자동으로 NONE 처리됩니다.",
+    newsDateLabel: "날짜",
+    newsStageLabel: "단계",
+    addNewsTagBtn: "태그 추가/수정",
+    newsAiHelper: '날짜별 뉴스 txt를 업로드하면 AI API가 각 날짜를 분석해 단계 및 감정 점수를 자동 산출합니다.\n          <b>AI API 키 설정이 필수입니다</b> (아래 5번 패널).',
+    newsTxtLabel: '뉴스 txt 업로드 (형식: 각 줄 "YYYY-MM-DD: 뉴스 본문")',
+    analyzeNewsBtn: "AI로 전체 분석 실행",
+    noTaggedDates: "태그된 날짜가 없습니다.",
+
+    panel5Title: "5. AI API 연동 (선택)",
+    providerLabel: "제공자",
+    endpointLabel: "API 엔드포인트 URL",
+    modelLabel: "모델명",
+    modelPlaceholder: "예: anthropic/claude-sonnet-4.5",
+    apiKeyLabel: "API 키",
+    apiKeyPlaceholder: "sk-or-... (이 브라우저에만 저장됩니다)",
+    saveKeyBtn: "저장 (로컬 브라우저에만)",
+    aiKeyStatusInitial: "저장된 키가 없습니다. 키는 서버로 전송되지 않고 이 브라우저의 localStorage에만 저장되며, 실제 API 호출은 사용자의 브라우저에서 직접 발생합니다.",
+    vibeLabel: "바이브코딩 — 자연어로 전략 요청",
+    vibePlaceholder: "예: 20일 이동평균선 위에 있을 때만 매수하고, RSI가 70 넘으면 매도하는 전략 짜줘",
+    vibeBtn: "AI로 전략 코드 생성",
+
+    panel6Title: "6. 전략 목록",
+    addStrategyBtn: "+ 새 전략 추가",
+    guideSummary: "전략 함수 작성 가이드 보기",
+    guideBody: `함수 시그니처: <code>function strategy(context)</code><br><br>
+          <b>context 입력:</b><br>
+          • <code>context.current</code> — 현재 캔들 {date, open, high, low, close, volume}<br>
+          • <code>context.history</code> — 지금까지의 전체 과거 캔들 배열 (지표는 직접 계산)<br>
+          • <code>context.index</code> — 현재 캔들 인덱스<br>
+          • <code>context.portfolio</code> — {cash, shares, avgPrice, totalValue}<br>
+          • <code>context.news</code> — {mode, stage, sentiment, raw}<br>
+          &nbsp;&nbsp;stage: "BOOM" | "LIGHT_BOOM" | "NONE" | "LIGHT_DOWNTURN" | "DOWNTURN" | "FAILURE"<br><br>
+          <b>반환 (출력) 형식:</b><br>
+          • <code>{ action: "BUY", amount: 10 }</code><br>
+          • <code>{ action: "SELL", amount: "ALL" }</code><br>
+          • <code>{ action: "HOLD" }</code><br><br>
+          현금/보유 부족 등 유효하지 않은 주문은 엔진이 자동으로 HOLD 처리합니다.`,
+
+    priceChartTitle: "가격 차트",
+    equityChartTitle: "전략 비교 — 자산 곡선",
+    equityPlaceholder: "전략을 실행하면 여기에 자산 곡선이 표시됩니다.",
+    timelineTitle: "View Timeline — 시간에 따른 투자 전개",
+    timelineStrategyLabel: "기준 전략",
+    timelinePlayBtn: "▶ 재생",
+    timelinePauseBtn: "⏸ 정지",
+    tlCurrentValueLabel: "현재 자산",
+    tlCashLabel: "보유 현금",
+    tlHoldingsLabel: "보유 주식 (평가액)",
+    tlPnlLabel: "누적 손익",
+    tlTradesLabel: "이 시점까지의 거래 내역",
+    tlNoTrades: "아직 거래 없음",
+    thDate: "날짜", thType: "구분", thQty: "수량", thPrice: "체결가", thPnl: "손익",
+
+    resultsTitle: "결과 비교표",
+    thStrategy: "전략", thStatus: "상태", thFinalValue: "최종 자산", thReturn: "수익률",
+    thMdd: "MDD", thTradeCount: "거래 횟수", thWinRate: "승률", thFees: "총 수수료/세금",
+    noStrategiesRun: "아직 실행된 전략이 없습니다.",
+    noResultYet: "결과 없음",
+
+    status_idle: "대기", status_running: "실행중", status_done: "완료", status_error: "오류", status_stopped: "중단됨",
+    runAloneBtn: "단독 실행",
+    buyLabel: "매수", sellLabel: "매도",
+    sharesUnit: "주",
+
+    alertSelectDate: "날짜를 선택해주세요.",
+    alertNoApiKeyNews: "AI API 키가 설정되지 않았습니다. 5번 패널에서 먼저 키를 저장해주세요.",
+    alertNoValidLines: "형식이 맞는 줄을 찾지 못했습니다. 'YYYY-MM-DD: 내용' 형식을 확인해주세요.",
+    analyzingProgress: (i, n, date) => `AI 분석 중... (${i}/${n}) ${date}`,
+    analyzeErrorPrefix: (date) => `오류 (${date}): `,
+    analyzeComplete: (n) => `완료: ${n}개 날짜 분석 완료`,
+    noSavedKey: "저장된 키가 없습니다.",
+    keySavedMsg: (last4) => `키 저장됨 (마지막 4자리: ...${last4}). 이 브라우저에만 저장되며 서버로 전송되지 않습니다.`,
+    keyLoadedMsg: (last4) => `저장된 키 불러옴 (마지막 4자리: ...${last4})`,
+    apiErrorPrefix: (status) => `API 오류 (${status}): `,
+    apiNoContent: "API 응답에서 내용을 찾을 수 없습니다.",
+    aiJsonParseFail: "AI 응답을 JSON으로 파싱할 수 없습니다: ",
+    vibeEmptyPrompt: "요청 내용을 입력해주세요.",
+    vibeNoApiKey: "AI API 키가 필요합니다. 먼저 키를 저장해주세요.",
+    vibeGenerating: "AI가 전략 코드를 작성 중...",
+    vibeAdded: "전략이 목록에 추가되었습니다.",
+    errorPrefix: "오류: ",
+    defaultStrategyName: (id) => `전략 ${id}`,
+    aiStrategyNamePrefix: "AI 전략: ",
+    alertSelectCsv: "CSV 파일을 선택해주세요.",
+    dataLoadedMsg: (n, start, end) => `${n}개 캔들 로드 완료 (${start} ~ ${end})`,
+    dataMetaMsg: (start, end, n, s, e) => `기간: ${start} ~ ${end} · 캔들 수: ${n} · 시작가: ${s} · 종료가: ${e}`,
+    alertLoadDataFirst: "먼저 데이터를 불러와주세요.",
+    defaultStrategyBaseName: "골든크로스 전략",
+    runningCountMsg: (n) => `${n}개 전략 실행 중`,
+    runningCountMsgDots: (n) => `${n}개 전략 실행 중...`,
+    csvMinCols: "CSV에 최소한 date, close 컬럼이 필요합니다.",
+    workerParseError: "코드 파싱 오류: ",
+    workerRunError: (i) => `실행 오류 (캔들 ${i}): `,
+    workerTimeout: (i, elapsed, timeoutMs) => `타임아웃 초과 (캔들 ${i}, ${elapsed}ms > ${timeoutMs}ms). 무한루프나 과도한 연산이 의심됩니다.`
+  },
+  en: {
+    pageTitle: "Strategy Backtesting Platform",
+    exitMsgIdle: "Strategy running...",
+    instantExitBtn: "⛔ Instant Exit (stop now)",
+    appTitle: "Strategy Backtesting Platform",
+    appSubtitle: "Step 1: Load data + run free-form code strategies + multi-compare",
+    engineIdle: "Engine idle",
+
+    panel1Title: "1. Data",
+    dataSourceLabel: "Data Source",
+    dataSourceSample: "Sample Data (built-in, ready to use)",
+    dataSourceCsv: "CSV Upload",
+    sampleTickerLabel: "Sample Ticker",
+    tickerTechBull: "TECH_BULL (bull-market growth sim)",
+    tickerVolatile: "VOLATILE (high volatility)",
+    tickerSideways: "SIDEWAYS (range-bound)",
+    tickerBear: "BEAR (bear-market sim)",
+    sampleDaysLabel: "Period (trading days)",
+    csvFileLabel: "CSV file (date,open,high,low,close,volume)",
+    loadDataBtn: "Load Data",
+    dataStatusInitial: "No data loaded yet.",
+
+    panel2Title: "2. Market Realism Settings",
+    marketPresetLabel: "Market Preset",
+    presetKR: "Korean (KRW, incl. transaction tax)",
+    presetUS: "US (USD, FX conversion)",
+    presetCustom: "Custom (manual input)",
+    buyFeeLabel: "Buy Fee (%)",
+    sellFeeLabel: "Sell Fee (%)",
+    taxLabel: "Transaction Tax (%)",
+    slippageLabel: "Slippage (%)",
+    baseCurrencyLabel: "Base Currency",
+    currencyKRW: "KRW (Korean won)",
+    currencyUSD: "USD (US dollar)",
+    fxRateLabel: "Applied FX Rate (USD/KRW)",
+    fxHedgeLabel: "Apply FX hedge (ignore FX fluctuation)",
+    marketHelperKR: "Korean KOSPI/KOSDAQ standard: buy/sell fees of 0.015% each, 0.18% transaction tax on sells. No FX impact (KRW-denominated trading).",
+    marketHelperUS: "Major US brokerage standard: most have no trading commission (0%), SEC fees are negligible and omitted. For KRW-based accounts, the FX rate affects the final KRW return upon conversion.",
+    marketHelperCustom: "Specify all fee/tax/FX values manually.",
+
+    panel3Title: "3. Backtest Settings",
+    initialCapitalLabel: "Initial Capital (same for all strategies)",
+    timeoutLabel: "Execution timeout per candle (ms)",
+    runAllBtn: "▶ Run All Strategies",
+
+    panel4Title: "4. News / Market Condition Layer",
+    newsModeLabel: "Mode",
+    newsModeNone: "Disabled (all NONE)",
+    newsModeManual: "Manual tagging (BOOM–FAILURE)",
+    newsModeAi: "AI analysis (txt upload + API required)",
+    newsManualHelper: "Select a date and set a stage. Dates left unset default to NONE.",
+    newsDateLabel: "Date",
+    newsStageLabel: "Stage",
+    addNewsTagBtn: "Add / Update Tag",
+    newsAiHelper: 'Upload a daily news .txt file and the AI API will analyze each date to automatically determine its stage and sentiment score.\n          <b>An AI API key is required</b> (panel 5 below).',
+    newsTxtLabel: 'News txt upload (format: each line "YYYY-MM-DD: news text")',
+    analyzeNewsBtn: "Run AI Analysis on All",
+    noTaggedDates: "No tagged dates.",
+
+    panel5Title: "5. AI API Integration (optional)",
+    providerLabel: "Provider",
+    endpointLabel: "API Endpoint URL",
+    modelLabel: "Model Name",
+    modelPlaceholder: "e.g. anthropic/claude-sonnet-4.5",
+    apiKeyLabel: "API Key",
+    apiKeyPlaceholder: "sk-or-... (stored only in this browser)",
+    saveKeyBtn: "Save (this browser only)",
+    aiKeyStatusInitial: "No key saved. The key is never sent to a server — it's stored only in this browser's localStorage, and API calls are made directly from your browser.",
+    vibeLabel: "Vibe Coding — request a strategy in plain language",
+    vibePlaceholder: "e.g. Buy only above the 20-day moving average, sell when RSI exceeds 70",
+    vibeBtn: "Generate Strategy Code with AI",
+
+    panel6Title: "6. Strategy List",
+    addStrategyBtn: "+ Add New Strategy",
+    guideSummary: "View strategy-function writing guide",
+    guideBody: `Function signature: <code>function strategy(context)</code><br><br>
+          <b>context input:</b><br>
+          • <code>context.current</code> — current candle {date, open, high, low, close, volume}<br>
+          • <code>context.history</code> — full array of past candles so far (compute indicators yourself)<br>
+          • <code>context.index</code> — current candle index<br>
+          • <code>context.portfolio</code> — {cash, shares, avgPrice, totalValue}<br>
+          • <code>context.news</code> — {mode, stage, sentiment, raw}<br>
+          &nbsp;&nbsp;stage: "BOOM" | "LIGHT_BOOM" | "NONE" | "LIGHT_DOWNTURN" | "DOWNTURN" | "FAILURE"<br><br>
+          <b>Return (output) format:</b><br>
+          • <code>{ action: "BUY", amount: 10 }</code><br>
+          • <code>{ action: "SELL", amount: "ALL" }</code><br>
+          • <code>{ action: "HOLD" }</code><br><br>
+          Invalid orders (e.g. insufficient cash/shares) are automatically treated as HOLD by the engine.`,
+
+    priceChartTitle: "Price Chart",
+    equityChartTitle: "Strategy Comparison — Equity Curve",
+    equityPlaceholder: "The equity curve will appear here once you run a strategy.",
+    timelineTitle: "View Timeline — Investment Progress Over Time",
+    timelineStrategyLabel: "Reference Strategy",
+    timelinePlayBtn: "▶ Play",
+    timelinePauseBtn: "⏸ Pause",
+    tlCurrentValueLabel: "Current Value",
+    tlCashLabel: "Cash Held",
+    tlHoldingsLabel: "Shares Held (value)",
+    tlPnlLabel: "Cumulative P&L",
+    tlTradesLabel: "Trades up to this point",
+    tlNoTrades: "No trades yet",
+    thDate: "Date", thType: "Type", thQty: "Qty", thPrice: "Price", thPnl: "P&L",
+
+    resultsTitle: "Results Comparison",
+    thStrategy: "Strategy", thStatus: "Status", thFinalValue: "Final Value", thReturn: "Return",
+    thMdd: "MDD", thTradeCount: "Trades", thWinRate: "Win Rate", thFees: "Total Fees/Tax",
+    noStrategiesRun: "No strategies have been run yet.",
+    noResultYet: "No result",
+
+    status_idle: "Idle", status_running: "Running", status_done: "Done", status_error: "Error", status_stopped: "Stopped",
+    runAloneBtn: "Run Alone",
+    buyLabel: "BUY", sellLabel: "SELL",
+    sharesUnit: "shares",
+
+    alertSelectDate: "Please select a date.",
+    alertNoApiKeyNews: "AI API key is not set. Please save a key in panel 5 first.",
+    alertNoValidLines: "No correctly formatted lines were found. Please check the 'YYYY-MM-DD: content' format.",
+    analyzingProgress: (i, n, date) => `Analyzing with AI... (${i}/${n}) ${date}`,
+    analyzeErrorPrefix: (date) => `Error (${date}): `,
+    analyzeComplete: (n) => `Done: analyzed ${n} date(s)`,
+    noSavedKey: "No key saved.",
+    keySavedMsg: (last4) => `Key saved (last 4 chars: ...${last4}). Stored only in this browser and never sent to a server.`,
+    keyLoadedMsg: (last4) => `Loaded saved key (last 4 chars: ...${last4})`,
+    apiErrorPrefix: (status) => `API error (${status}): `,
+    apiNoContent: "Could not find content in the API response.",
+    aiJsonParseFail: "Could not parse the AI response as JSON: ",
+    vibeEmptyPrompt: "Please enter your request.",
+    vibeNoApiKey: "An AI API key is required. Please save a key first.",
+    vibeGenerating: "AI is writing strategy code...",
+    vibeAdded: "Strategy added to the list.",
+    errorPrefix: "Error: ",
+    defaultStrategyName: (id) => `Strategy ${id}`,
+    aiStrategyNamePrefix: "AI Strategy: ",
+    alertSelectCsv: "Please select a CSV file.",
+    dataLoadedMsg: (n, start, end) => `${n} candles loaded (${start} ~ ${end})`,
+    dataMetaMsg: (start, end, n, s, e) => `Period: ${start} ~ ${end} · Candles: ${n} · Start price: ${s} · End price: ${e}`,
+    alertLoadDataFirst: "Please load data first.",
+    defaultStrategyBaseName: "Golden Cross Strategy",
+    runningCountMsg: (n) => `${n} strategy(ies) running`,
+    runningCountMsgDots: (n) => `${n} strategy(ies) running...`,
+    csvMinCols: "The CSV must have at least date and close columns.",
+    workerParseError: "Code parse error: ",
+    workerRunError: (i) => `Execution error (candle ${i}): `,
+    workerTimeout: (i, elapsed, timeoutMs) => `Timeout exceeded (candle ${i}, ${elapsed}ms > ${timeoutMs}ms). This may indicate an infinite loop or excessive computation.`
+  }
+};
+
+let currentLang = localStorage.getItem("bt_lang") || "ko";
+
+function t(key, ...args) {
+  const dict = I18N[currentLang] || I18N.ko;
+  const val = dict[key] !== undefined ? dict[key] : (I18N.ko[key] !== undefined ? I18N.ko[key] : key);
+  return typeof val === "function" ? val(...args) : val;
+}
+
+function applyStaticTranslations() {
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.title = t("pageTitle");
+  document.documentElement.lang = currentLang;
+  document.getElementById("langKoBtn").classList.toggle("active", currentLang === "ko");
+  document.getElementById("langEnBtn").classList.toggle("active", currentLang === "en");
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("bt_lang", lang);
+  applyStaticTranslations();
+  updateMarketHelperText();
+  renderStrategyList();
+  renderNewsTagList();
+  renderResultsTable();
+  updateGlobalStatus();
+  if (candles.length === 0) {
+    document.getElementById("dataStatus").textContent = t("dataStatusInitial");
+  }
+  drawEquityChart();
+  if (timelineState.strategyId) {
+    const s = strategies.find(s => s.id === timelineState.strategyId);
+    if (s && s.result) renderTimelineAtIndex(timelineState.currentIndex);
+  }
+  document.getElementById("timelinePlayBtn").textContent =
+    timelineState.playing ? t("timelinePauseBtn") : t("timelinePlayBtn");
+}
+
+document.getElementById("langKoBtn").addEventListener("click", () => setLanguage("ko"));
+document.getElementById("langEnBtn").addEventListener("click", () => setLanguage("en"));
+
+let candles = [];              // {date, open, high, low, close, volume}
+let strategies = [];           // {id, name, color, code, status, worker, result}
+let strategyIdCounter = 0;
+const COLORS = ["#4f8cff", "#2ecc71", "#f5a623", "#e879f9", "#ff5c5c", "#2dd4bf", "#a78bfa", "#fb923c"];
+let activeRunCount = 0;
+
+// 뉴스 태그: { "YYYY-MM-DD": { stage: "BOOM", sentiment: null, raw: null } }
+let newsTags = {};
+let newsMode = "none"; // none | manual | ai
+
+const STAGE_LABELS = {
+  BOOM: "Economic Boom", LIGHT_BOOM: "Light Economic Boom", NONE: "No News",
+  LIGHT_DOWNTURN: "Light Economic Downturn", DOWNTURN: "Economic Downturn", FAILURE: "Economic Failure"
+};
+
+/* ===========================================================
+   샘플 데이터 생성기 (의사난수, 시드 고정 -> 재현 가능)
+=========================================================== */
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generateSampleData(profile, days) {
+  const profiles = {
+    TECH_BULL:  { drift: 0.0012, vol: 0.018, seed: 42 },
+    VOLATILE:   { drift: 0.0003, vol: 0.038, seed: 7 },
+    SIDEWAYS:   { drift: 0.0000, vol: 0.012, seed: 99 },
+    BEAR:       { drift: -0.0010, vol: 0.020, seed: 13 }
+  };
+  const cfg = profiles[profile];
+  const rand = mulberry32(cfg.seed);
+  let price = 50000;
+  const out = [];
+  let d = new Date();
+  d.setDate(d.getDate() - days * 1.45);
+
+  for (let i = 0; i < days; i++) {
+    // skip weekends roughly
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() === 0 || d.getDay() === 6) { i--; continue; }
+
+    const gauss = (rand() + rand() + rand() + rand() - 2) / 2; // approx normal
+    const changePct = cfg.drift + cfg.vol * gauss;
+    const open = price;
+    const close = Math.max(price * (1 + changePct), 100);
+    const high = Math.max(open, close) * (1 + Math.abs(gauss) * 0.006);
+    const low = Math.min(open, close) * (1 - Math.abs(gauss) * 0.006);
+    const volume = Math.floor(500000 + rand() * 2000000);
+
+    out.push({
+      date: d.toISOString().slice(0, 10),
+      open: round2(open), high: round2(high), low: round2(low), close: round2(close),
+      volume
+    });
+    price = close;
+  }
+  return out;
+}
+
+function round2(n) { return Math.round(n * 100) / 100; }
+
+/* ===========================================================
+   CSV 파싱
+=========================================================== */
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const header = lines[0].split(",").map(h => h.trim().toLowerCase());
+  const idx = {
+    date: header.indexOf("date"),
+    open: header.indexOf("open"),
+    high: header.indexOf("high"),
+    low: header.indexOf("low"),
+    close: header.indexOf("close"),
+    volume: header.indexOf("volume")
+  };
+  if (idx.date === -1 || idx.close === -1) {
+    throw new Error(t("csvMinCols"));
+  }
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = lines[i].split(",");
+    rows.push({
+      date: cols[idx.date],
+      open: parseFloat(cols[idx.open] ?? cols[idx.close]),
+      high: parseFloat(cols[idx.high] ?? cols[idx.close]),
+      low: parseFloat(cols[idx.low] ?? cols[idx.close]),
+      close: parseFloat(cols[idx.close]),
+      volume: idx.volume > -1 ? parseFloat(cols[idx.volume]) || 0 : 0
+    });
+  }
+  rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+  return rows;
+}
+
+/* ===========================================================
+   데이터 로드 UI
+=========================================================== */
+/* ===========================================================
+   시장 고증 (수수료/세금/환율) 프리셋
+=========================================================== */
+const MARKET_PRESETS = {
+  KR: { buyFee: 0.015, sellFee: 0.015, tax: 0.18, slippage: 0.05, fxVisible: false, helperKey: "marketHelperKR" },
+  US: { buyFee: 0.0, sellFee: 0.0, tax: 0.0, slippage: 0.05, fxVisible: true, helperKey: "marketHelperUS" },
+  CUSTOM: { buyFee: 0.015, sellFee: 0.015, tax: 0.18, slippage: 0.05, fxVisible: true, helperKey: "marketHelperCustom" }
+};
+
+function applyMarketPreset(key) {
+  const p = MARKET_PRESETS[key];
+  document.getElementById("buyFeePct").value = p.buyFee;
+  document.getElementById("sellFeePct").value = p.sellFee;
+  document.getElementById("taxPct").value = p.tax;
+  document.getElementById("slippagePct").value = p.slippage;
+  document.getElementById("fxControls").style.display = p.fxVisible ? "block" : "none";
+  document.getElementById("marketHelper").textContent = t(p.helperKey);
+  if (key === "US") document.getElementById("baseCurrency").value = "USD";
+  if (key === "KR") document.getElementById("baseCurrency").value = "KRW";
+}
+
+function updateMarketHelperText() {
+  const key = document.getElementById("marketPreset").value;
+  const p = MARKET_PRESETS[key];
+  if (p) document.getElementById("marketHelper").textContent = t(p.helperKey);
+}
+
+document.getElementById("marketPreset").addEventListener("change", (e) => {
+  applyMarketPreset(e.target.value);
+});
+applyMarketPreset("KR");
+
+/* ===========================================================
+   뉴스 레이어 UI
+=========================================================== */
+document.getElementById("newsMode").addEventListener("change", (e) => {
+  newsMode = e.target.value;
+  document.getElementById("newsManualControls").style.display = newsMode === "manual" ? "block" : "none";
+  document.getElementById("newsAiControls").style.display = newsMode === "ai" ? "block" : "none";
+});
+
+document.getElementById("addNewsTagBtn").addEventListener("click", () => {
+  const date = document.getElementById("newsTagDate").value;
+  const stage = document.getElementById("newsTagStage").value;
+  if (!date) { alert(t("alertSelectDate")); return; }
+  newsTags[date] = { stage, sentiment: null, raw: null };
+  renderNewsTagList();
+});
+
+function renderNewsTagList() {
+  const container = document.getElementById("newsTagList");
+  const dates = Object.keys(newsTags).sort();
+  if (dates.length === 0) {
+    container.innerHTML = `<div class="helper">${t("noTaggedDates")}</div>`;
+    return;
+  }
+  container.innerHTML = dates.map(d => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--border); font-size:12px;">
+      <span>${d} — ${escapeHtml(STAGE_LABELS[newsTags[d].stage])}</span>
+      <button class="small secondary" onclick="removeNewsTag('${d}')">✕</button>
+    </div>
+  `).join("");
+}
+
+function removeNewsTag(date) {
+  delete newsTags[date];
+  renderNewsTagList();
+}
+
+document.getElementById("newsTxtFile").addEventListener("change", (e) => {
+  document.getElementById("analyzeNewsBtn").disabled = !e.target.files[0];
+});
+
+document.getElementById("analyzeNewsBtn").addEventListener("click", async () => {
+  const fileInput = document.getElementById("newsTxtFile");
+  const statusEl = document.getElementById("newsAiStatus");
+  if (!fileInput.files[0]) return;
+
+  const aiConfig = getAiConfig();
+  if (!aiConfig.apiKey) {
+    statusEl.textContent = t("alertNoApiKeyNews");
+    statusEl.style.color = "var(--red)";
+    return;
+  }
+
+  const text = await fileInput.files[0].text();
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  const entries = lines.map(line => {
+    const m = line.match(/^(\d{4}-\d{2}-\d{2}):\s*(.*)$/);
+    return m ? { date: m[1], raw: m[2] } : null;
+  }).filter(Boolean);
+
+  if (entries.length === 0) {
+    statusEl.textContent = t("alertNoValidLines");
+    statusEl.style.color = "var(--red)";
+    return;
+  }
+
+  statusEl.style.color = "var(--text-dim)";
+  document.getElementById("analyzeNewsBtn").disabled = true;
+
+  let done = 0;
+  for (const entry of entries) {
+    statusEl.textContent = t("analyzingProgress", done + 1, entries.length, entry.date);
+    try {
+      const result = await callAiForNewsSentiment(entry.raw, aiConfig);
+      newsTags[entry.date] = { stage: result.stage, sentiment: result, raw: entry.raw };
+    } catch (err) {
+      statusEl.textContent = t("analyzeErrorPrefix", entry.date) + err.message;
+      statusEl.style.color = "var(--red)";
+      document.getElementById("analyzeNewsBtn").disabled = false;
+      return;
+    }
+    done++;
+  }
+  statusEl.textContent = t("analyzeComplete", entries.length);
+  statusEl.style.color = "var(--green)";
+  document.getElementById("analyzeNewsBtn").disabled = false;
+  renderNewsTagList();
+});
+
+/* ===========================================================
+   AI API 연동 (OpenRouter / Custom)
+=========================================================== */
+function getAiConfig() {
+  return {
+    provider: document.getElementById("aiProvider").value,
+    endpoint: document.getElementById("aiEndpoint").value.trim(),
+    model: document.getElementById("aiModel").value.trim(),
+    apiKey: document.getElementById("aiApiKey").value.trim() || localStorage.getItem("bt_ai_key") || ""
+  };
+}
+
+document.getElementById("saveAiKeyBtn").addEventListener("click", () => {
+  const key = document.getElementById("aiApiKey").value.trim();
+  const statusEl = document.getElementById("aiKeyStatus");
+  if (!key) {
+    localStorage.removeItem("bt_ai_key");
+    statusEl.textContent = t("noSavedKey");
+    return;
+  }
+  localStorage.setItem("bt_ai_key", key);
+  localStorage.setItem("bt_ai_endpoint", document.getElementById("aiEndpoint").value.trim());
+  localStorage.setItem("bt_ai_model", document.getElementById("aiModel").value.trim());
+  statusEl.textContent = t("keySavedMsg", key.slice(-4));
+  statusEl.style.color = "var(--green)";
+  document.getElementById("analyzeNewsBtn").disabled = !document.getElementById("newsTxtFile").files[0];
+});
+
+// 페이지 로드 시 저장된 키 복원
+(function restoreAiKey() {
+  const key = localStorage.getItem("bt_ai_key");
+  const endpoint = localStorage.getItem("bt_ai_endpoint");
+  const model = localStorage.getItem("bt_ai_model");
+  if (key) {
+    document.getElementById("aiApiKey").value = key;
+    if (endpoint) document.getElementById("aiEndpoint").value = endpoint;
+    if (model) document.getElementById("aiModel").value = model;
+    document.getElementById("aiKeyStatus").textContent = t("keyLoadedMsg", key.slice(-4));
+    document.getElementById("aiKeyStatus").style.color = "var(--green)";
+  }
+})();
+
+async function callAiChat(systemPrompt, userPrompt, aiConfig) {
+  const res = await fetch(aiConfig.endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${aiConfig.apiKey}`
+    },
+    body: JSON.stringify({
+      model: aiConfig.model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    })
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(t("apiErrorPrefix", res.status) + errText.slice(0, 200));
+  }
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content ?? data.content?.[0]?.text;
+  if (!content) throw new Error(t("apiNoContent"));
+  return content;
+}
+
+async function callAiForNewsSentiment(newsText, aiConfig) {
+  const systemPrompt = `당신은 금융 뉴스 분석가입니다. 주어진 뉴스 텍스트를 분석해서 다음 JSON 형식으로만 답하세요. 다른 설명은 절대 포함하지 마세요.
+{"stage": "BOOM|LIGHT_BOOM|NONE|LIGHT_DOWNTURN|DOWNTURN|FAILURE", "score": -100~100 사이 정수, "summary": "한 문장 요약"}
+stage 기준: BOOM=강한 호재/경기확장, LIGHT_BOOM=약한 호재, NONE=중립/영향없음, LIGHT_DOWNTURN=약한 악재, DOWNTURN=강한 악재, FAILURE=심각한 위기/폭락 신호`;
+  const raw = await callAiChat(systemPrompt, newsText, aiConfig);
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error(t("aiJsonParseFail") + raw.slice(0, 100));
+  const parsed = JSON.parse(jsonMatch[0]);
+  if (!STAGE_LABELS[parsed.stage]) parsed.stage = "NONE";
+  return parsed;
+}
+
+document.getElementById("vibeCodeBtn").addEventListener("click", async () => {
+  const promptEl = document.getElementById("vibePrompt");
+  const statusEl = document.getElementById("vibeStatus");
+  const userReq = promptEl.value.trim();
+  if (!userReq) { statusEl.textContent = t("vibeEmptyPrompt"); statusEl.style.color = "var(--red)"; return; }
+
+  const aiConfig = getAiConfig();
+  if (!aiConfig.apiKey) { statusEl.textContent = t("vibeNoApiKey"); statusEl.style.color = "var(--red)"; return; }
+
+  statusEl.textContent = t("vibeGenerating");
+  statusEl.style.color = "var(--text-dim)";
+
+  const systemPrompt = `당신은 주식 백테스팅 전략 코드 생성기입니다. 아래 명세를 정확히 따르는 JavaScript 함수 하나만 생성하세요. 설명이나 마크다운 없이 코드만 출력하세요.
+
+함수 시그니처: function strategy(context) { ... }
+context.current: {date, open, high, low, close, volume}
+context.history: 지금까지의 전체 캔들 배열 (지표는 직접 계산, 예: SMA, RSI 등)
+context.index: 현재 인덱스
+context.portfolio: {cash, shares, avgPrice, totalValue}
+context.news: {mode, stage(BOOM|LIGHT_BOOM|NONE|LIGHT_DOWNTURN|DOWNTURN|FAILURE), sentiment, raw}
+반환 형식 (반드시 이 중 하나):
+{ action: "BUY", amount: number | "ALL" }
+{ action: "SELL", amount: number | "ALL" }
+{ action: "HOLD" }`;
+
+  try {
+    const code = await callAiChat(systemPrompt, userReq, aiConfig);
+    const cleaned = code.replace(/^```(?:javascript|js)?\n?/i, "").replace(/```$/, "").trim();
+    addStrategy(t("aiStrategyNamePrefix") + userReq.slice(0, 20), cleaned);
+    statusEl.textContent = t("vibeAdded");
+    statusEl.style.color = "var(--green)";
+  } catch (err) {
+    statusEl.textContent = t("errorPrefix") + err.message;
+    statusEl.style.color = "var(--red)";
+  }
+});
+
+document.getElementById("dataSource").addEventListener("change", (e) => {
+  document.getElementById("sampleControls").style.display = e.target.value === "sample" ? "block" : "none";
+  document.getElementById("csvControls").style.display = e.target.value === "csv" ? "block" : "none";
+});
+
+document.getElementById("loadDataBtn").addEventListener("click", async () => {
+  const source = document.getElementById("dataSource").value;
+  const statusEl = document.getElementById("dataStatus");
+  try {
+    if (source === "sample") {
+      const ticker = document.getElementById("sampleTicker").value;
+      const days = parseInt(document.getElementById("sampleDays").value, 10);
+      candles = generateSampleData(ticker, days);
+    } else {
+      const fileInput = document.getElementById("csvFile");
+      if (!fileInput.files[0]) { statusEl.textContent = t("alertSelectCsv"); return; }
+      const text = await fileInput.files[0].text();
+      candles = parseCSV(text);
+    }
+    statusEl.textContent = t("dataLoadedMsg", candles.length, candles[0].date, candles[candles.length-1].date);
+    document.getElementById("dataMeta").textContent = t(
+      "dataMetaMsg",
+      candles[0].date, candles[candles.length-1].date, candles.length,
+      candles[0].close.toLocaleString(), candles[candles.length-1].close.toLocaleString()
+    );
+    document.getElementById("runAllBtn").disabled = false;
+    drawPriceChart();
+  } catch (err) {
+    statusEl.textContent = t("errorPrefix") + err.message;
+  }
+});
+
+/* ===========================================================
+   전략 관리 UI
+=========================================================== */
+const DEFAULT_CODE =
+`function strategy(context) {
+  // 예시: 5일 이동평균이 20일 이동평균을 상향 돌파하면 매수,
+  //       하향 돌파하면 매도 (골든/데드 크로스)
+  const closes = context.history.map(c => c.close);
+  if (closes.length < 21) return { action: "HOLD" };
+
+  const sma = (arr, n) => {
+    const slice = arr.slice(-n);
+    return slice.reduce((a, b) => a + b, 0) / n;
+  };
+
+  const sma5 = sma(closes, 5);
+  const sma20 = sma(closes, 20);
+  const prevSma5 = sma(closes.slice(0, -1), 5);
+  const prevSma20 = sma(closes.slice(0, -1), 20);
+
+  const goldenCross = prevSma5 <= prevSma20 && sma5 > sma20;
+  const deadCross = prevSma5 >= prevSma20 && sma5 < sma20;
+
+  if (goldenCross && context.portfolio.cash > context.current.close) {
+    return { action: "BUY", amount: "ALL" };
+  }
+  if (deadCross && context.portfolio.shares > 0) {
+    return { action: "SELL", amount: "ALL" };
+  }
+  return { action: "HOLD" };
+}`;
+
+function addStrategy(name, code) {
+  const id = ++strategyIdCounter;
+  const color = COLORS[(id - 1) % COLORS.length];
+  strategies.push({
+    id, name: name || t("defaultStrategyName", id), color,
+    code: code || DEFAULT_CODE,
+    status: "idle", worker: null, result: null
+  });
+  renderStrategyList();
+}
+
+function removeStrategy(id) {
+  const s = strategies.find(s => s.id === id);
+  if (s && s.worker) s.worker.terminate();
+  strategies = strategies.filter(s => s.id !== id);
+  renderStrategyList();
+  drawEquityChart();
+  renderResultsTable();
+}
+
+function renderStrategyList() {
+  const container = document.getElementById("strategyList");
+  container.innerHTML = "";
+  strategies.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "strategy-card";
+    card.innerHTML = `
+      <div class="strategy-head">
+        <div class="swatch" style="background:${s.color}"></div>
+        <input type="text" value="${escapeHtml(s.name)}" data-id="${s.id}" class="strategyName" />
+        <button class="small secondary removeBtn" data-id="${s.id}">✕</button>
+      </div>
+      <textarea class="code" data-id="${s.id}" spellcheck="false">${escapeHtml(s.code)}</textarea>
+      <div class="strategy-actions">
+        <span class="status-badge status-${s.status}" id="badge-${s.id}">${statusLabel(s.status)}</span>
+        <button class="small secondary runOneBtn" data-id="${s.id}">${t("runAloneBtn")}</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll(".strategyName").forEach(el => {
+    el.addEventListener("input", (e) => {
+      const s = strategies.find(s => s.id == e.target.dataset.id);
+      if (s) { s.name = e.target.value; drawEquityChart(); renderResultsTable(); }
+    });
+  });
+  container.querySelectorAll(".code").forEach(el => {
+    el.addEventListener("input", (e) => {
+      const s = strategies.find(s => s.id == e.target.dataset.id);
+      if (s) s.code = e.target.value;
+    });
+  });
+  container.querySelectorAll(".removeBtn").forEach(el => {
+    el.addEventListener("click", (e) => removeStrategy(parseInt(e.target.dataset.id, 10)));
+  });
+  container.querySelectorAll(".runOneBtn").forEach(el => {
+    el.addEventListener("click", (e) => {
+      const s = strategies.find(s => s.id == parseInt(e.target.dataset.id, 10));
+      if (s) runStrategy(s);
+    });
+  });
+}
+
+function statusLabel(status) {
+  return t("status_" + status) || status;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+document.getElementById("addStrategyBtn").addEventListener("click", () => addStrategy());
+
+// 시작 시 기본 전략 하나
+addStrategy(t("defaultStrategyBaseName"), DEFAULT_CODE);
+
+/* ===========================================================
+   Web Worker 기반 실행 엔진 (Instant Exit 지원)
+=========================================================== */
+function buildWorkerSource() {
+  return `
+    self.onmessage = function(e) {
+      const { code, candles, initialCapital, timeoutMs, market, newsTags, msgs } = e.data;
+      const buyFeeRate = (market.buyFee || 0) / 100;
+      const sellFeeRate = (market.sellFee || 0) / 100;
+      const taxRate = (market.tax || 0) / 100;
+      const slippageRate = (market.slippage || 0) / 100;
+      const fxRate = market.fxRate || 1;
+      const fxHedge = !!market.fxHedge;
+      const baseFxRate = fxRate; // 최초 환율 기준 (헤지 시 이 값 고정 사용)
+
+      let strategyFn;
+      try {
+        strategyFn = new Function('context', code + '\\nreturn strategy(context);');
+      } catch (err) {
+        self.postMessage({ type: 'error', message: msgs.parseError + err.message });
+        return;
+      }
+
+      let portfolio = { cash: initialCapital, shares: 0, avgPrice: 0, totalValue: initialCapital };
+      const equityCurve = [];
+      const trades = [];
+      let maxValue = initialCapital;
+      let maxDrawdown = 0;
+      let totalFeesPaid = 0;
+
+      for (let i = 0; i < candles.length; i++) {
+        const current = candles[i];
+        const history = candles.slice(0, i + 1);
+
+        const tag = newsTags && newsTags[current.date];
+        const newsCtx = tag
+          ? { mode: tag.sentiment ? 'ai' : 'manual', stage: tag.stage, sentiment: tag.sentiment, raw: tag.raw }
+          : { mode: 'none', stage: 'NONE', sentiment: null, raw: null };
+
+        const context = {
+          current, history, index: i,
+          portfolio: { ...portfolio },
+          news: newsCtx
+        };
+
+        const start = performance.now();
+        let decision;
+        try {
+          decision = strategyFn(context);
+        } catch (err) {
+          self.postMessage({ type: 'error', message: msgs.runError.replace('{i}', i) + err.message });
+          return;
+        }
+        const elapsed = performance.now() - start;
+        if (elapsed > timeoutMs) {
+          self.postMessage({ type: 'error', message: msgs.timeout.replace('{i}', i).replace('{elapsed}', elapsed.toFixed(1)).replace('{timeoutMs}', timeoutMs) });
+          return;
+        }
+
+        decision = decision || { action: 'HOLD' };
+        const basePrice = current.close;
+        // 슬리피지: 매수는 불리하게(비싸게), 매도는 불리하게(싸게) 체결
+        const buyPrice = basePrice * (1 + slippageRate);
+        const sellPrice = basePrice * (1 - slippageRate);
+
+        if (decision.action === 'BUY') {
+          let amount = decision.amount === 'ALL'
+            ? Math.floor(portfolio.cash / (buyPrice * (1 + buyFeeRate)))
+            : Math.max(0, Math.floor(decision.amount || 0));
+          const grossCost = amount * buyPrice;
+          const fee = grossCost * buyFeeRate;
+          const totalCost = grossCost + fee;
+          if (amount > 0 && totalCost <= portfolio.cash) {
+            const newShares = portfolio.shares + amount;
+            portfolio.avgPrice = newShares > 0
+              ? (portfolio.avgPrice * portfolio.shares + totalCost) / newShares
+              : 0;
+            portfolio.cash -= totalCost;
+            portfolio.shares = newShares;
+            totalFeesPaid += fee;
+            trades.push({ date: current.date, action: 'BUY', amount, price: buyPrice, fee, index: i });
+          }
+        } else if (decision.action === 'SELL') {
+          let amount = decision.amount === 'ALL'
+            ? portfolio.shares
+            : Math.max(0, Math.floor(decision.amount || 0));
+          amount = Math.min(amount, portfolio.shares);
+          if (amount > 0) {
+            const grossProceeds = amount * sellPrice;
+            const fee = grossProceeds * sellFeeRate;
+            const tax = grossProceeds * taxRate;
+            const netProceeds = grossProceeds - fee - tax;
+            const pnl = netProceeds - (portfolio.avgPrice * amount);
+            portfolio.cash += netProceeds;
+            portfolio.shares -= amount;
+            if (portfolio.shares === 0) portfolio.avgPrice = 0;
+            totalFeesPaid += fee + tax;
+            trades.push({ date: current.date, action: 'SELL', amount, price: sellPrice, fee: fee + tax, index: i, pnl });
+          }
+        }
+
+        portfolio.totalValue = portfolio.cash + portfolio.shares * basePrice;
+        // 통화 환산 (환헤지 아닐 때만 환율 변동 반영; 여기서는 시뮬레이션 단순화를 위해
+        // fxRate 고정값을 그대로 곱해 표시 통화 환산치를 참고용으로 제공)
+        const displayValueForeign = fxHedge ? portfolio.totalValue / baseFxRate : portfolio.totalValue / fxRate;
+
+        equityCurve.push({ date: current.date, value: portfolio.totalValue, valueForeign: displayValueForeign });
+
+        if (portfolio.totalValue > maxValue) maxValue = portfolio.totalValue;
+        const dd = (maxValue - portfolio.totalValue) / maxValue;
+        if (dd > maxDrawdown) maxDrawdown = dd;
+
+        if (i % 20 === 0) {
+          self.postMessage({ type: 'progress', index: i, total: candles.length });
+        }
+      }
+
+      const finalValue = portfolio.totalValue;
+      const returnPct = ((finalValue - initialCapital) / initialCapital) * 100;
+      const sellTrades = trades.filter(t => t.action === 'SELL');
+      const wins = sellTrades.filter(t => t.pnl > 0).length;
+      const winRate = sellTrades.length > 0 ? (wins / sellTrades.length) * 100 : 0;
+
+      self.postMessage({
+        type: 'done',
+        result: {
+          finalValue, returnPct, maxDrawdown: maxDrawdown * 100,
+          tradeCount: trades.length, winRate, equityCurve, trades, totalFeesPaid
+        }
+      });
+    };
+  `;
+}
+
+function runStrategy(s) {
+  if (candles.length === 0) { alert(t("alertLoadDataFirst")); return; }
+  if (s.worker) s.worker.terminate();
+
+  s.status = "running";
+  updateBadge(s);
+  activeRunCount++;
+  updateGlobalStatus();
+
+  const blob = new Blob([buildWorkerSource()], { type: "application/javascript" });
+  const worker = new Worker(URL.createObjectURL(blob));
+  s.worker = worker;
+
+  const initialCapital = parseFloat(document.getElementById("initialCapital").value) || 10000000;
+  const timeoutMs = parseFloat(document.getElementById("timeoutMs").value) || 50;
+  const market = {
+    buyFee: parseFloat(document.getElementById("buyFeePct").value) || 0,
+    sellFee: parseFloat(document.getElementById("sellFeePct").value) || 0,
+    tax: parseFloat(document.getElementById("taxPct").value) || 0,
+    slippage: parseFloat(document.getElementById("slippagePct").value) || 0,
+    fxRate: parseFloat(document.getElementById("fxRate").value) || 1,
+    fxHedge: document.getElementById("fxHedge").checked
+  };
+  const activeNewsTags = newsMode === "none" ? {} : newsTags;
+  const msgs = {
+    parseError: t("workerParseError"),
+    runError: t("workerRunError", "{i}"),
+    timeout: t("workerTimeout", "{i}", "{elapsed}", "{timeoutMs}")
+  };
+
+  worker.onmessage = (e) => {
+    const msg = e.data;
+    if (msg.type === "progress") {
+      // 진행상황은 배지에는 생략, 필요시 표시 가능
+    } else if (msg.type === "done") {
+      s.status = "done";
+      s.result = msg.result;
+      worker.terminate();
+      s.worker = null;
+      activeRunCount--;
+      updateBadge(s);
+      updateGlobalStatus();
+      drawEquityChart();
+      renderResultsTable();
+    } else if (msg.type === "error") {
+      s.status = "error";
+      s.result = null;
+      s.errorMsg = msg.message;
+      worker.terminate();
+      s.worker = null;
+      activeRunCount--;
+      updateBadge(s);
+      updateGlobalStatus();
+      renderResultsTable();
+    }
+  };
+
+  worker.onerror = (err) => {
+    s.status = "error";
+    s.errorMsg = err.message;
+    activeRunCount--;
+    updateBadge(s);
+    updateGlobalStatus();
+    renderResultsTable();
+  };
+
+  worker.postMessage({
+    code: s.code,
+    candles: candles,
+    initialCapital: initialCapital,
+    timeoutMs: timeoutMs,
+    market: market,
+    newsTags: activeNewsTags,
+    msgs: msgs
+  });
+}
+
+function updateBadge(s) {
+  const badge = document.getElementById(`badge-${s.id}`);
+  if (badge) {
+    badge.className = `status-badge status-${s.status}`;
+    badge.textContent = statusLabel(s.status) + (s.status === "error" && s.errorMsg ? "" : "");
+  }
+}
+
+function updateGlobalStatus() {
+  const bar = document.getElementById("instantExitBar");
+  const engineStatus = document.getElementById("engineStatus");
+  if (activeRunCount > 0) {
+    bar.classList.add("show");
+    document.getElementById("exitMsg").textContent = t("runningCountMsgDots", activeRunCount);
+    engineStatus.textContent = t("runningCountMsg", activeRunCount);
+  } else {
+    bar.classList.remove("show");
+    engineStatus.textContent = t("engineIdle");
+  }
+}
+
+document.getElementById("instantExitBtn").addEventListener("click", () => {
+  strategies.forEach(s => {
+    if (s.worker) {
+      s.worker.terminate();
+      s.worker = null;
+      s.status = "stopped";
+      updateBadge(s);
+    }
+  });
+  activeRunCount = 0;
+  updateGlobalStatus();
+  renderResultsTable();
+});
+
+document.getElementById("runAllBtn").addEventListener("click", () => {
+  strategies.forEach(s => runStrategy(s));
+});
+
+/* ===========================================================
+   결과 테이블
+=========================================================== */
+function renderResultsTable() {
+  const body = document.getElementById("resultsBody");
+  if (strategies.length === 0) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:24px;">${t("noStrategiesRun")}</td></tr>`;
+    return;
+  }
+  body.innerHTML = "";
+  strategies.forEach(s => {
+    const r = s.result;
+    const tr = document.createElement("tr");
+    if (!r) {
+      tr.innerHTML = `
+        <td><span class="swatch" style="display:inline-block;background:${s.color}"></span>${escapeHtml(s.name)}</td>
+        <td>${statusLabel(s.status)}${s.status === 'error' && s.errorMsg ? ' — ' + escapeHtml(s.errorMsg) : ''}</td>
+        <td colspan="6" style="color:var(--text-dim)">${t("noResultYet")}</td>
+      `;
+    } else {
+      const retClass = r.returnPct >= 0 ? "pos" : "neg";
+      tr.innerHTML = `
+        <td><span class="swatch" style="display:inline-block;background:${s.color}"></span>${escapeHtml(s.name)}</td>
+        <td>${statusLabel(s.status)}</td>
+        <td>${Math.round(r.finalValue).toLocaleString()}</td>
+        <td class="${retClass}">${r.returnPct >= 0 ? "+" : ""}${r.returnPct.toFixed(2)}%</td>
+        <td class="neg">-${r.maxDrawdown.toFixed(2)}%</td>
+        <td>${r.tradeCount}</td>
+        <td>${r.winRate.toFixed(1)}%</td>
+        <td>${Math.round(r.totalFeesPaid || 0).toLocaleString()}</td>
+      `;
+    }
+    body.appendChild(tr);
+  });
+  updateTimelineStrategyOptions();
+}
+
+/* ===========================================================
+   Canvas 차트 (라이브러리 없이 순수 구현)
+=========================================================== */
+function drawPriceChart() {
+  const canvas = document.getElementById("priceChart");
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 260 * dpr;
+  canvas.style.height = "260px";
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = 260;
+  ctx.clearRect(0, 0, W, H);
+
+  if (candles.length === 0) return;
+  const closes = candles.map(c => c.close);
+  const min = Math.min(...closes), max = Math.max(...closes);
+  const pad = 20;
+
+  ctx.strokeStyle = "#2b2f3d";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad + (H - pad * 2) * (i / 4);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = "#4f8cff";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  closes.forEach((c, i) => {
+    const x = (i / (closes.length - 1)) * W;
+    const y = pad + (H - pad * 2) * (1 - (c - min) / (max - min || 1));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = "#8b90a3";
+  ctx.font = "11px sans-serif";
+  ctx.fillText(max.toLocaleString(), 4, pad);
+  ctx.fillText(min.toLocaleString(), 4, H - pad + 12);
+}
+
+function drawEquityChart() {
+  const canvas = document.getElementById("equityChart");
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 320 * dpr;
+  canvas.style.height = "320px";
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = 320;
+  ctx.clearRect(0, 0, W, H);
+
+  const withResults = strategies.filter(s => s.result);
+  const legendEl = document.getElementById("equityLegend");
+  legendEl.innerHTML = "";
+
+  if (withResults.length === 0) {
+    ctx.fillStyle = "#8b90a3";
+    ctx.font = "13px sans-serif";
+    ctx.fillText(t("equityPlaceholder"), 16, H / 2);
+    return;
+  }
+
+  let allValues = [];
+  withResults.forEach(s => s.result.equityCurve.forEach(p => allValues.push(p.value)));
+  const min = Math.min(...allValues) * 0.98;
+  const max = Math.max(...allValues) * 1.02;
+  const pad = 24;
+
+  ctx.strokeStyle = "#2b2f3d";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad + (H - pad * 2) * (i / 4);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  withResults.forEach(s => {
+    const curve = s.result.equityCurve;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    curve.forEach((p, i) => {
+      const x = (i / (curve.length - 1)) * W;
+      const y = pad + (H - pad * 2) * (1 - (p.value - min) / (max - min || 1));
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    const item = document.createElement("span");
+    item.innerHTML = `<span class="dot" style="background:${s.color}"></span>${escapeHtml(s.name)} (${s.result.returnPct >= 0 ? "+" : ""}${s.result.returnPct.toFixed(1)}%)`;
+    legendEl.appendChild(item);
+  });
+
+  ctx.fillStyle = "#8b90a3";
+  ctx.font = "11px sans-serif";
+  ctx.fillText(Math.round(max).toLocaleString(), 4, pad);
+  ctx.fillText(Math.round(min).toLocaleString(), 4, H - pad + 12);
+}
+
+window.addEventListener("resize", () => { drawPriceChart(); drawEquityChart(); drawTimelineChart(); });
+
+/* ===========================================================
+   View Timeline — 시간에 따른 투자 전개 시각화
+=========================================================== */
+let timelineState = {
+  strategyId: null,
+  playing: false,
+  playTimer: null,
+  currentIndex: 0
+};
+
+function updateTimelineStrategyOptions() {
+  const sel = document.getElementById("timelineStrategySelect");
+  const panel = document.getElementById("timelinePanel");
+  const withResults = strategies.filter(s => s.result);
+
+  if (withResults.length === 0) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+
+  const prevSelected = sel.value;
+  sel.innerHTML = withResults.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+
+  const stillExists = withResults.some(s => String(s.id) === prevSelected);
+  sel.value = stillExists ? prevSelected : String(withResults[0].id);
+  timelineState.strategyId = parseInt(sel.value, 10);
+
+  const s = strategies.find(s => s.id === timelineState.strategyId);
+  const slider = document.getElementById("timelineSlider");
+  slider.max = s.result.equityCurve.length - 1;
+  if (timelineState.currentIndex > slider.max || timelineState.currentIndex === 0) {
+    timelineState.currentIndex = s.result.equityCurve.length - 1;
+  }
+  slider.value = timelineState.currentIndex;
+
+  renderTimelineAtIndex(timelineState.currentIndex);
+}
+
+document.getElementById("timelineStrategySelect").addEventListener("change", (e) => {
+  timelineState.strategyId = parseInt(e.target.value, 10);
+  timelineState.currentIndex = 0;
+  const s = strategies.find(s => s.id === timelineState.strategyId);
+  const slider = document.getElementById("timelineSlider");
+  slider.max = s.result.equityCurve.length - 1;
+  slider.value = 0;
+  renderTimelineAtIndex(0);
+});
+
+document.getElementById("timelineSlider").addEventListener("input", (e) => {
+  stopTimelinePlay();
+  timelineState.currentIndex = parseInt(e.target.value, 10);
+  renderTimelineAtIndex(timelineState.currentIndex);
+});
+
+document.getElementById("timelinePlayBtn").addEventListener("click", () => {
+  if (timelineState.playing) {
+    stopTimelinePlay();
+  } else {
+    startTimelinePlay();
+  }
+});
+
+function startTimelinePlay() {
+  const s = strategies.find(s => s.id === timelineState.strategyId);
+  if (!s || !s.result) return;
+  const maxIndex = s.result.equityCurve.length - 1;
+  if (timelineState.currentIndex >= maxIndex) timelineState.currentIndex = 0;
+
+  timelineState.playing = true;
+  document.getElementById("timelinePlayBtn").textContent = t("timelinePauseBtn");
+
+  timelineState.playTimer = setInterval(() => {
+    timelineState.currentIndex++;
+    if (timelineState.currentIndex >= maxIndex) {
+      timelineState.currentIndex = maxIndex;
+      renderTimelineAtIndex(timelineState.currentIndex);
+      stopTimelinePlay();
+      return;
+    }
+    document.getElementById("timelineSlider").value = timelineState.currentIndex;
+    renderTimelineAtIndex(timelineState.currentIndex);
+  }, 60);
+}
+
+function stopTimelinePlay() {
+  timelineState.playing = false;
+  document.getElementById("timelinePlayBtn").textContent = t("timelinePlayBtn");
+  if (timelineState.playTimer) {
+    clearInterval(timelineState.playTimer);
+    timelineState.playTimer = null;
+  }
+}
+
+function renderTimelineAtIndex(index) {
+  const s = strategies.find(s => s.id === timelineState.strategyId);
+  if (!s || !s.result) return;
+  const curve = s.result.equityCurve;
+  if (!curve[index]) return;
+
+  const point = curve[index];
+  const candle = candles[index];
+
+  // 이 시점까지의 거래로 포트폴리오 재구성 (표시용 요약)
+  const tradesUpToNow = s.result.trades.filter(t => t.index <= index);
+  let shares = 0, cash = parseFloat(document.getElementById("initialCapital").value) || 10000000;
+  let realizedPnl = 0;
+  tradesUpToNow.forEach(t => {
+    if (t.action === "BUY") { shares += t.amount; cash -= (t.amount * t.price + t.fee); }
+    else { shares -= t.amount; cash += (t.amount * t.price - t.fee); realizedPnl += (t.pnl || 0); }
+  });
+  const holdingsValue = shares * (candle ? candle.close : 0);
+  const totalValue = point.value;
+  const totalPnl = totalValue - (parseFloat(document.getElementById("initialCapital").value) || 10000000);
+
+  document.getElementById("timelineDateLabel").textContent = point.date;
+  document.getElementById("tlCurrentValue").textContent = Math.round(totalValue).toLocaleString();
+  document.getElementById("tlCash").textContent = Math.round(cash).toLocaleString();
+  document.getElementById("tlHoldings").textContent = `${shares.toLocaleString()}${t("sharesUnit")} (${Math.round(holdingsValue).toLocaleString()})`;
+  const pnlEl = document.getElementById("tlPnl");
+  pnlEl.textContent = `${totalPnl >= 0 ? "+" : ""}${Math.round(totalPnl).toLocaleString()}`;
+  pnlEl.style.color = totalPnl >= 0 ? "var(--green)" : "var(--red)";
+
+  const tradeBody = document.getElementById("timelineTradeBody");
+  if (tradesUpToNow.length === 0) {
+    tradeBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-dim);">${t("tlNoTrades")}</td></tr>`;
+  } else {
+    tradeBody.innerHTML = tradesUpToNow.slice().reverse().map(tr => {
+      const cls = tr.action === "BUY" ? "" : (tr.pnl >= 0 ? "pos" : "neg");
+      return `<tr>
+        <td>${tr.date}</td>
+        <td class="${tr.action === 'BUY' ? 'pos' : 'neg'}">${tr.action === 'BUY' ? t("buyLabel") : t("sellLabel")}</td>
+        <td>${tr.amount.toLocaleString()}</td>
+        <td>${Math.round(tr.price).toLocaleString()}</td>
+        <td class="${cls}">${tr.pnl !== undefined ? (tr.pnl >= 0 ? "+" : "") + Math.round(tr.pnl).toLocaleString() : "-"}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  drawTimelineChart(index);
+}
+
+function drawTimelineChart(highlightIndex) {
+  const s = strategies.find(s => s.id === timelineState.strategyId);
+  const canvas = document.getElementById("timelineChart");
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 280 * dpr;
+  canvas.style.height = "280px";
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = 280;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!s || !s.result || candles.length === 0) return;
+  if (highlightIndex === undefined) highlightIndex = timelineState.currentIndex;
+
+  const closes = candles.map(c => c.close);
+  const min = Math.min(...closes), max = Math.max(...closes);
+  const pad = 24;
+  const priceY = (v) => pad + (H - pad * 2) * (1 - (v - min) / (max - min || 1));
+
+  // 그리드
+  ctx.strokeStyle = "#2b2f3d";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad + (H - pad * 2) * (i / 4);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // 가격선 (현재 인덱스까지만 진하게, 이후는 흐리게)
+  const xAt = (i) => (i / (closes.length - 1)) * W;
+
+  ctx.strokeStyle = "#3a3f52";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  closes.forEach((c, i) => {
+    const x = xAt(i), y = priceY(c);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  ctx.strokeStyle = "#4f8cff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  closes.forEach((c, i) => {
+    if (i > highlightIndex) return;
+    const x = xAt(i), y = priceY(c);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // 매수/매도 마커 (highlightIndex까지)
+  s.result.trades.forEach(t => {
+    if (t.index > highlightIndex) return;
+    const x = xAt(t.index), y = priceY(candles[t.index].close);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = t.action === "BUY" ? "#2ecc71" : "#ff5c5c";
+    ctx.fill();
+    ctx.strokeStyle = "#0f1117";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // 현재 위치 세로선
+  const cx = xAt(highlightIndex);
+  ctx.strokeStyle = "#f5a623";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(cx, pad); ctx.lineTo(cx, H - pad); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#8b90a3";
+  ctx.font = "11px sans-serif";
+  ctx.fillText(max.toLocaleString(), 4, pad);
+  ctx.fillText(min.toLocaleString(), 4, H - pad + 12);
+}
+
+/* ===========================================================
+   초기 언어 적용
+=========================================================== */
+applyStaticTranslations();
+updateMarketHelperText();
+renderStrategyList();
+renderResultsTable();
+</script>
+</body>
+</html>
