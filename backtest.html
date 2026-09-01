@@ -45,11 +45,15 @@
     border-right: 1px solid var(--border);
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
     max-height: calc(100vh - 60px);
+    overscroll-behavior: contain;
   }
   .main {
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
   }
 
   .panel {
@@ -58,7 +62,10 @@
     border-radius: 10px;
     padding: 16px;
     margin-bottom: 16px;
+    contain: layout paint;
+    position: relative;
   }
+  .panel:last-child { margin-bottom: 4px; }
   .panel h2 {
     font-size: 13px;
     text-transform: uppercase;
@@ -226,6 +233,30 @@
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ===== Chart hover tooltip ===== */
+  .chart-hover-area { touch-action: none; }
+  .chart-hover-area canvas { display: block; cursor: crosshair; }
+  .chart-tooltip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    z-index: 10;
+    transform: translate(-50%, -100%);
+    top: 0; left: 0;
+  }
+  .chart-tooltip .tt-date { color: var(--text-dim); font-weight: 600; margin-bottom: 2px; }
+  .chart-tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
+  .chart-tooltip .tt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   /* ===== UI polish additions ===== */
   html { scroll-behavior: smooth; }
@@ -524,18 +555,69 @@
       </div>
     </div>
 
+    <div class="panel">
+      <h2 data-i18n="panel7Title">7. 플랫폼 안내 — 엔진 · 데이터 · API</h2>
+      <div class="helper">
+        <details>
+          <summary data-i18n="infoEngineSummary">전략 실행 엔진 상세 보기</summary>
+          <span data-i18n-html="infoEngineBody">
+            • 각 전략은 브라우저 메인 스레드를 막지 않도록 <b>Web Worker</b>에서 독립적으로 실행됩니다. 전략 하나당 Worker 하나가 생성되어, 여러 전략을 동시에 실행해도 서로 영향을 주지 않습니다.<br>
+            • Worker 안에서는 사용자가 작성한 코드가 <code>new Function('context', code + 'return strategy(context)')</code> 형태로 컴파일되어, 캔들 데이터를 하루(한 캔들)씩 순차적으로 넘겨받아 실행됩니다.<br>
+            • <b>캔들당 실행 타임아웃</b>(기본 50ms, 5~1000ms 조절 가능)을 초과하면 해당 전략은 즉시 오류 상태로 중단됩니다. 무한 루프나 과도한 연산을 막기 위한 안전장치이므로, 복잡한 지표 계산이 많다면 타임아웃 값을 늘려주세요.<br>
+            • 매수/매도 시 현금 또는 보유 수량이 부족하면 주문은 자동으로 <code>HOLD</code>로 대체되며 전략은 중단되지 않고 계속 실행됩니다.<br>
+            • 상단 빨간 바(Instant Exit)로 실행 중인 모든 Worker를 즉시 종료할 수 있습니다 — 전략 코드에 문제가 있어도 페이지가 멈추지 않습니다.
+          </span>
+        </details>
+        <details style="margin-top:10px;">
+          <summary data-i18n="infoDataSummary">데이터 소스 상세 보기</summary>
+          <span data-i18n-html="infoDataBody">
+            • <b>샘플 데이터</b>: 서버 요청 없이 브라우저 내에서 즉시 생성되는 합성 가격 데이터입니다. TECH_BULL(성장주 상승 시뮬레이션), VOLATILE(고변동성), SIDEWAYS(박스권), BEAR(하락장) 4종의 패턴 중 선택할 수 있고, 거래일 수(60~2000일)를 지정해 길이를 조절합니다. 실제 시장 데이터가 아니므로 전략의 로직 검증·데모용으로만 사용하세요.<br>
+            • <b>CSV 업로드</b>: <code>date,open,high,low,close,volume</code> 형식의 CSV 파일을 그대로 불러옵니다. 별도의 외부 시세 API(예: 한국투자증권, 야후 파이낸스, Binance 등)에는 연결되어 있지 않으므로, 실거래 데이터로 백테스트하려면 사용자가 직접 해당 데이터를 CSV로 준비해 업로드해야 합니다.<br>
+            • 모든 데이터 처리(캔들 파싱, 지표 계산, 체결 시뮬레이션)는 <b>브라우저 로컬에서만</b> 수행되며 외부 서버로 전송되지 않습니다.
+          </span>
+        </details>
+        <details style="margin-top:10px;">
+          <summary data-i18n="infoApiSummary">AI API 연동 · 엔드포인트 상세 보기</summary>
+          <span data-i18n-html="infoApiBody">
+            • 이 플랫폼 자체는 백엔드 서버가 없는 <b>순수 정적 페이지</b>입니다. "AI API 연동" 기능은 사용자의 브라우저가 사용자 본인의 API 키로 <b>OpenAI 호환 Chat Completions 엔드포인트</b>에 직접 요청(fetch)을 보내는 구조입니다 — 이 앱의 서버를 거치지 않습니다.<br>
+            • <b>기본 엔드포인트</b>: <code>https://openrouter.ai/api/v1/chat/completions</code> (OpenRouter). "Custom Endpoint"를 선택하면 동일한 요청 스펙(OpenAI Chat Completions 호환)을 지원하는 어떤 URL이든 직접 입력할 수 있습니다.<br>
+            • <b>요청 형식</b>: <code>POST</code>, 헤더 <code>Content-Type: application/json</code>, <code>Authorization: Bearer &lt;API 키&gt;</code>, 바디 <code>{ model, messages: [{role:"system",...},{role:"user",...}] }</code>.<br>
+            • <b>응답 파싱</b>: <code>data.choices[0].message.content</code>(OpenAI 형식)를 우선 읽고, 없으면 <code>data.content[0].text</code>(Anthropic 형식)를 시도합니다.<br>
+            • 이 엔드포인트는 두 곳에서 사용됩니다: ① <b>뉴스 감정 분석</b> — 업로드한 txt의 날짜별 뉴스 한 줄마다 개별 API 호출을 보내 BOOM~FAILURE 6단계 국면과 감정 점수를 JSON으로 반환받습니다. ② <b>바이브코딩(자연어 → 전략 코드)</b> — 자연어 설명을 시스템 프롬프트와 함께 보내 <code>function strategy(context){...}</code> 형태의 JS 코드를 생성받습니다.<br>
+            • <b>키 저장 위치</b>: 입력한 API 키·엔드포인트·모델명은 서버로 전송되지 않고 브라우저의 <code>localStorage</code>에만 저장됩니다. 다른 사람과 이 파일(또는 브라우저)을 공유하면 저장된 키도 함께 노출될 수 있으니 주의하세요.<br>
+            • 뉴스 분석은 날짜 개수만큼 <b>순차적으로 API를 호출</b>하므로, 날짜가 많을수록 완료까지 시간이 오래 걸리고 API 사용 비용도 그만큼 발생합니다.
+          </span>
+        </details>
+        <details style="margin-top:10px;">
+          <summary data-i18n="infoLimitSummary">알아두면 좋은 제약사항</summary>
+          <span data-i18n-html="infoLimitBody">
+            • 실시간 시세 조회, 자동 주문 실행 등 실제 증권사 API 연동 기능은 없습니다 (순수 백테스트/시뮬레이션 도구).<br>
+            • 여러 전략을 "모두 실행"해도 초기 자본·수수료·세금·슬리피지 등 조건은 모든 전략에 동일하게 적용되어 공정 비교가 가능합니다.<br>
+            • 브라우저 탭을 닫거나 새로고침하면 실행 결과와 전략 코드는 초기화됩니다(자동 저장 없음). 중요한 전략 코드는 별도로 복사해 두는 것을 권장합니다.<br>
+            • AI가 생성한 전략 코드는 반드시 실행 전 검토하세요 — 실제 자금 운용에 사용하기 전 충분한 백테스트 검증이 필요합니다.
+          </span>
+        </details>
+      </div>
+    </div>
+
   </div>
 
   <div class="main">
     <div id="chartWrap">
       <h2 style="font-size:13px; text-transform:uppercase; color:var(--text-dim); margin:0 0 12px;" data-i18n="priceChartTitle">가격 차트</h2>
-      <canvas id="priceChart"></canvas>
+      <div class="chart-hover-area" id="priceChartArea" style="position:relative;">
+        <canvas id="priceChart"></canvas>
+        <div class="chart-tooltip" id="priceChartTooltip"></div>
+      </div>
       <div id="dataMeta" class="helper"></div>
     </div>
 
     <div id="chartWrap2" class="panel">
       <h2 data-i18n="equityChartTitle">전략 비교 — 자산 곡선</h2>
-      <canvas id="equityChart"></canvas>
+      <div class="chart-hover-area" id="equityChartArea" style="position:relative;">
+        <canvas id="equityChart"></canvas>
+        <div class="chart-tooltip" id="equityChartTooltip"></div>
+      </div>
       <div class="legend" id="equityLegend"></div>
     </div>
 
@@ -708,7 +790,37 @@ const I18N = {
           • <code>{ action: "HOLD" }</code><br><br>
           현금/보유 부족 등 유효하지 않은 주문은 엔진이 자동으로 HOLD 처리합니다.`,
 
+    panel7Title: "7. 플랫폼 안내 — 엔진 · 데이터 · API",
+    infoEngineSummary: "전략 실행 엔진 상세 보기",
+    infoEngineBody: `
+            • 각 전략은 브라우저 메인 스레드를 막지 않도록 <b>Web Worker</b>에서 독립적으로 실행됩니다. 전략 하나당 Worker 하나가 생성되어, 여러 전략을 동시에 실행해도 서로 영향을 주지 않습니다.<br>
+            • Worker 안에서는 사용자가 작성한 코드가 <code>new Function('context', code + 'return strategy(context)')</code> 형태로 컴파일되어, 캔들 데이터를 하루(한 캔들)씩 순차적으로 넘겨받아 실행됩니다.<br>
+            • <b>캔들당 실행 타임아웃</b>(기본 50ms, 5~1000ms 조절 가능)을 초과하면 해당 전략은 즉시 오류 상태로 중단됩니다. 무한 루프나 과도한 연산을 막기 위한 안전장치이므로, 복잡한 지표 계산이 많다면 타임아웃 값을 늘려주세요.<br>
+            • 매수/매도 시 현금 또는 보유 수량이 부족하면 주문은 자동으로 <code>HOLD</code>로 대체되며 전략은 중단되지 않고 계속 실행됩니다.<br>
+            • 상단 빨간 바(Instant Exit)로 실행 중인 모든 Worker를 즉시 종료할 수 있습니다 — 전략 코드에 문제가 있어도 페이지가 멈추지 않습니다.`,
+    infoDataSummary: "데이터 소스 상세 보기",
+    infoDataBody: `
+            • <b>샘플 데이터</b>: 서버 요청 없이 브라우저 내에서 즉시 생성되는 합성 가격 데이터입니다. TECH_BULL(성장주 상승 시뮬레이션), VOLATILE(고변동성), SIDEWAYS(박스권), BEAR(하락장) 4종의 패턴 중 선택할 수 있고, 거래일 수(60~2000일)를 지정해 길이를 조절합니다. 실제 시장 데이터가 아니므로 전략의 로직 검증·데모용으로만 사용하세요.<br>
+            • <b>CSV 업로드</b>: <code>date,open,high,low,close,volume</code> 형식의 CSV 파일을 그대로 불러옵니다. 별도의 외부 시세 API(예: 한국투자증권, 야후 파이낸스, Binance 등)에는 연결되어 있지 않으므로, 실거래 데이터로 백테스트하려면 사용자가 직접 해당 데이터를 CSV로 준비해 업로드해야 합니다.<br>
+            • 모든 데이터 처리(캔들 파싱, 지표 계산, 체결 시뮬레이션)는 <b>브라우저 로컬에서만</b> 수행되며 외부 서버로 전송되지 않습니다.`,
+    infoApiSummary: "AI API 연동 · 엔드포인트 상세 보기",
+    infoApiBody: `
+            • 이 플랫폼 자체는 백엔드 서버가 없는 <b>순수 정적 페이지</b>입니다. "AI API 연동" 기능은 사용자의 브라우저가 사용자 본인의 API 키로 <b>OpenAI 호환 Chat Completions 엔드포인트</b>에 직접 요청(fetch)을 보내는 구조입니다 — 이 앱의 서버를 거치지 않습니다.<br>
+            • <b>기본 엔드포인트</b>: <code>https://openrouter.ai/api/v1/chat/completions</code> (OpenRouter). "Custom Endpoint"를 선택하면 동일한 요청 스펙(OpenAI Chat Completions 호환)을 지원하는 어떤 URL이든 직접 입력할 수 있습니다.<br>
+            • <b>요청 형식</b>: <code>POST</code>, 헤더 <code>Content-Type: application/json</code>, <code>Authorization: Bearer &lt;API 키&gt;</code>, 바디 <code>{ model, messages: [{role:"system",...},{role:"user",...}] }</code>.<br>
+            • <b>응답 파싱</b>: <code>data.choices[0].message.content</code>(OpenAI 형식)를 우선 읽고, 없으면 <code>data.content[0].text</code>(Anthropic 형식)를 시도합니다.<br>
+            • 이 엔드포인트는 두 곳에서 사용됩니다: ① <b>뉴스 감정 분석</b> — 업로드한 txt의 날짜별 뉴스 한 줄마다 개별 API 호출을 보내 BOOM~FAILURE 6단계 국면과 감정 점수를 JSON으로 반환받습니다. ② <b>바이브코딩(자연어 → 전략 코드)</b> — 자연어 설명을 시스템 프롬프트와 함께 보내 <code>function strategy(context){...}</code> 형태의 JS 코드를 생성받습니다.<br>
+            • <b>키 저장 위치</b>: 입력한 API 키·엔드포인트·모델명은 서버로 전송되지 않고 브라우저의 <code>localStorage</code>에만 저장됩니다. 다른 사람과 이 파일(또는 브라우저)을 공유하면 저장된 키도 함께 노출될 수 있으니 주의하세요.<br>
+            • 뉴스 분석은 날짜 개수만큼 <b>순차적으로 API를 호출</b>하므로, 날짜가 많을수록 완료까지 시간이 오래 걸리고 API 사용 비용도 그만큼 발생합니다.`,
+    infoLimitSummary: "알아두면 좋은 제약사항",
+    infoLimitBody: `
+            • 실시간 시세 조회, 자동 주문 실행 등 실제 증권사 API 연동 기능은 없습니다 (순수 백테스트/시뮬레이션 도구).<br>
+            • 여러 전략을 "모두 실행"해도 초기 자본·수수료·세금·슬리피지 등 조건은 모든 전략에 동일하게 적용되어 공정 비교가 가능합니다.<br>
+            • 브라우저 탭을 닫거나 새로고침하면 실행 결과와 전략 코드는 초기화됩니다(자동 저장 없음). 중요한 전략 코드는 별도로 복사해 두는 것을 권장합니다.<br>
+            • AI가 생성한 전략 코드는 반드시 실행 전 검토하세요 — 실제 자금 운용에 사용하기 전 충분한 백테스트 검증이 필요합니다.`,
+
     priceChartTitle: "가격 차트",
+    hoverCloseLabel: "종가",
     equityChartTitle: "전략 비교 — 자산 곡선",
     equityPlaceholder: "전략을 실행하면 여기에 자산 곡선이 표시됩니다.",
     timelineTitle: "View Timeline — 시간에 따른 투자 전개",
@@ -854,7 +966,37 @@ const I18N = {
           • <code>{ action: "HOLD" }</code><br><br>
           Invalid orders (e.g. insufficient cash/shares) are automatically treated as HOLD by the engine.`,
 
+    panel7Title: "7. Platform Guide — Engine · Data · API",
+    infoEngineSummary: "View strategy execution engine details",
+    infoEngineBody: `
+            • Each strategy runs independently inside its own <b>Web Worker</b> so the main browser thread is never blocked. One Worker is spawned per strategy, so running several strategies at once never lets them interfere with each other.<br>
+            • Inside the Worker, your code is compiled as <code>new Function('context', code + 'return strategy(context)')</code> and is called once per candle, in sequence, as historical data is streamed in day by day.<br>
+            • If a single candle's execution exceeds the <b>per-candle timeout</b> (default 50ms, adjustable 5–1000ms), that strategy is immediately halted with an error. This is a safety guard against infinite loops or heavy computation — raise the timeout if your strategy does complex indicator math.<br>
+            • If cash or share balance is insufficient for a BUY/SELL, the order is automatically downgraded to <code>HOLD</code> and the strategy keeps running rather than crashing.<br>
+            • The red "Instant Exit" bar at the top can terminate all running Workers immediately, so a buggy strategy can never freeze the page.`,
+    infoDataSummary: "View data source details",
+    infoDataBody: `
+            • <b>Sample data</b>: synthetic price data generated instantly in the browser, with no server request. Choose from 4 patterns — TECH_BULL (growth-stock bull run), VOLATILE (high volatility), SIDEWAYS (range-bound), BEAR (downtrend) — and set the length (60–2000 trading days). This is not real market data; use it only to validate strategy logic or for demos.<br>
+            • <b>CSV upload</b>: loads a CSV file with columns <code>date,open,high,low,close,volume</code> as-is. There is no built-in connection to an external market-data API (e.g. a brokerage, Yahoo Finance, Binance, etc.) — to backtest on real data, you must prepare and upload that data as a CSV yourself.<br>
+            • All data processing (candle parsing, indicator computation, trade simulation) happens <b>entirely in your local browser</b> and is never sent to an external server.`,
+    infoApiSummary: "View AI API integration · endpoint details",
+    infoApiBody: `
+            • This platform itself is a <b>static page with no backend server</b>. The "AI API Integration" feature works by having your browser send requests directly, using your own API key, to an <b>OpenAI-compatible Chat Completions endpoint</b> — the request never passes through this app's own server.<br>
+            • <b>Default endpoint</b>: <code>https://openrouter.ai/api/v1/chat/completions</code> (OpenRouter). Choosing "Custom Endpoint" lets you point to any URL that implements the same request spec (OpenAI Chat Completions compatible).<br>
+            • <b>Request shape</b>: <code>POST</code>, headers <code>Content-Type: application/json</code> and <code>Authorization: Bearer &lt;your API key&gt;</code>, body <code>{ model, messages: [{role:"system",...},{role:"user",...}] }</code>.<br>
+            • <b>Response parsing</b>: reads <code>data.choices[0].message.content</code> (OpenAI format) first, falling back to <code>data.content[0].text</code> (Anthropic format) if that's missing.<br>
+            • This endpoint powers two features: ① <b>News sentiment analysis</b> — each dated line in an uploaded txt file triggers a separate API call, returning a BOOM–FAILURE 6-stage market phase plus a sentiment score as JSON. ② <b>Vibe-coding (natural language → strategy code)</b> — your natural-language description is sent with a system prompt to generate a <code>function strategy(context){...}</code> JavaScript function.<br>
+            • <b>Where your key is stored</b>: the API key, endpoint, and model name you enter are never sent to any server of this app — they're saved only in your browser's <code>localStorage</code>. If you share this file or browser with someone else, any saved key would be exposed too.<br>
+            • News analysis calls the API <b>once per date, sequentially</b>, so more dated entries mean longer completion time and proportionally higher API cost.`,
+    infoLimitSummary: "Good to know — limitations",
+    infoLimitBody: `
+            • There is no live quote feed or real order execution — this is purely a backtesting/simulation tool, with no connection to any actual brokerage.<br>
+            • Running "all strategies" applies the exact same initial capital, fees, tax, and slippage to every strategy, so comparisons stay fair.<br>
+            • Closing the tab or refreshing the page resets all results and strategy code — nothing is auto-saved. Copy out any strategy code you want to keep.<br>
+            • Always review AI-generated strategy code before trusting it — thorough backtesting is essential before using any strategy with real capital.`,
+
     priceChartTitle: "Price Chart",
+    hoverCloseLabel: "Close",
     equityChartTitle: "Strategy Comparison — Equity Curve",
     equityPlaceholder: "The equity curve will appear here once you run a strategy.",
     timelineTitle: "View Timeline — Investment Progress Over Time",
@@ -1830,6 +1972,75 @@ function drawEquityChart() {
   ctx.fillText(Math.round(max).toLocaleString(), 4, pad);
   ctx.fillText(Math.round(min).toLocaleString(), 4, H - pad + 12);
 }
+
+/* ===========================================================
+   차트 호버 툴팁 — 마우스를 올리면 해당 시점의 날짜/값 표시
+=========================================================== */
+function setupChartHover(canvasId, areaId, tooltipId, getPointAtRatio) {
+  const canvas = document.getElementById(canvasId);
+  const area = document.getElementById(areaId);
+  const tooltip = document.getElementById(tooltipId);
+
+  function hide() { tooltip.style.display = "none"; }
+
+  function handleMove(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0) { hide(); return; }
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) { hide(); return; }
+
+    const ratio = Math.min(1, Math.max(0, x / rect.width));
+    const info = getPointAtRatio(ratio);
+    if (!info) { hide(); return; }
+
+    tooltip.innerHTML = info.html;
+    tooltip.style.display = "block";
+
+    let left = x;
+    const tw = tooltip.offsetWidth;
+    const areaW = area.clientWidth;
+    left = Math.min(Math.max(left, tw / 2 + 4), areaW - tw / 2 - 4);
+    tooltip.style.left = left + "px";
+    tooltip.style.top = "6px";
+  }
+
+  canvas.addEventListener("mousemove", (e) => handleMove(e.clientX, e.clientY));
+  canvas.addEventListener("mouseleave", hide);
+  canvas.addEventListener("touchmove", (e) => {
+    if (e.touches[0]) { handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+  }, { passive: false });
+  canvas.addEventListener("touchend", hide);
+}
+
+setupChartHover("priceChart", "priceChartArea", "priceChartTooltip", (ratio) => {
+  if (candles.length === 0) return null;
+  const i = Math.round(ratio * (candles.length - 1));
+  const c = candles[i];
+  if (!c) return null;
+  return {
+    html: `<div class="tt-date">${escapeHtml(c.date)}</div>
+           <div class="tt-row">${t("hoverCloseLabel")}: ${Math.round(c.close).toLocaleString()}</div>
+           <div class="tt-row" style="color:var(--text-dim);">O ${Math.round(c.open).toLocaleString()} · H ${Math.round(c.high).toLocaleString()} · L ${Math.round(c.low).toLocaleString()}</div>`
+  };
+});
+
+setupChartHover("equityChart", "equityChartArea", "equityChartTooltip", (ratio) => {
+  const withResults = strategies.filter(s => s.result);
+  if (withResults.length === 0) return null;
+  const maxLen = Math.max(...withResults.map(s => s.result.equityCurve.length));
+  const i = Math.round(ratio * (maxLen - 1));
+  const rows = withResults.map(s => {
+    const p = s.result.equityCurve[i];
+    if (!p) return "";
+    return `<div class="tt-row"><span class="tt-dot" style="background:${s.color}"></span>${escapeHtml(s.name)}: ${Math.round(p.value).toLocaleString()}</div>`;
+  }).filter(Boolean).join("");
+  if (!rows) return null;
+  const dateSample = withResults.map(s => s.result.equityCurve[i]).find(Boolean);
+  return {
+    html: `<div class="tt-date">${dateSample ? escapeHtml(dateSample.date) : ""}</div>${rows}`
+  };
+});
 
 window.addEventListener("resize", () => { drawPriceChart(); drawEquityChart(); drawTimelineChart(); });
 
